@@ -1,0 +1,15 @@
+target
+__pycache__
+*.pyc
+.cache
+
+*.ipynb_checkpoints
+*.lut
+*.tif
+*.png
+*.ipynb.py*
+runc
+application.xml
+*.properties
+*.geojson
+

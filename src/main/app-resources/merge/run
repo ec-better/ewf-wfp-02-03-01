@@ -1,0 +1,178 @@
+#!/opt/anaconda/envs/env_ewf_wfp_02_03_01/bin/python
+
+import os
+import sys
+
+sys.path.append('/'.join([os.environ['_CIOP_APPLICATION_PATH'], 'util']))
+sys.path.append('../util')
+
+import string
+import atexit
+import pandas as pd
+import cioppy 
+import gdal
+import shutil
+from shapely.geometry import box
+import datetime
+
+ciop = cioppy.Cioppy()
+    
+# define the exit codes
+SUCCESS = 0
+ERR_RESOLUTION = 10
+ERR_STAGEIN = 20
+ERR_NO_OUTPUT = 30
+
+# add a trap to exit gracefully
+def clean_exit(exit_code):
+    log_level = 'INFO'
+    if exit_code != SUCCESS:
+        log_level = 'ERROR'  
+   
+    msg = {SUCCESS: 'Processing successfully concluded',
+           ERR_RESOLUTION: 'Could not resolve Sentinel-1 product enclosure',
+           ERR_STAGEIN: 'Could not stage-in Sentinel-1 product', 
+           ERR_NO_OUTPUT: "Missing output"
+    }
+ 
+    ciop.log(log_level, msg[exit_code])  
+
+def analyse_row(row):
+    
+    series = dict()
+
+    if 's_' in row.enclosure:
+        output_type = 's'
+    
+    elif 'original_ndvi' in row.enclosure:
+        output_type = 'original_ndvi'
+        
+    else: 
+        output_type = 'ndvi'
+
+    series['output_type'] = output_type
+   
+    return pd.Series(series)    
+
+def get_raster_wkt(raster):
+    src = gdal.Open(raster)
+    ulx, xres, xskew, uly, yskew, yres  = src.GetGeoTransform()
+    lrx = ulx + (src.RasterXSize * xres)
+    lry = uly + (src.RasterYSize * yres)
+
+    from osgeo import ogr
+    from osgeo import osr
+
+    # Setup the source projection - you can also import from epsg, proj4...
+    source = osr.SpatialReference()
+    source.ImportFromWkt(src.GetProjection())
+
+    # The target projection
+    target = osr.SpatialReference()
+    target.ImportFromEPSG(4326)
+
+    # Create the transform - this can be used repeatedly
+    transform = osr.CoordinateTransformation(source, target)
+
+    return box(transform.TransformPoint(ulx, lry)[0], 
+       transform.TransformPoint(ulx, lry)[1],
+       transform.TransformPoint(lrx, uly)[0],
+       transform.TransformPoint(lrx, uly)[1]).wkt
+
+def main():
+     
+    ciop = cioppy.Cioppy()
+    
+    
+    os.chdir(ciop.tmp_dir)
+    
+    references = []
+                
+    for input in sys.stdin:
+        ciop.log('INFO', 'Adding {}'.format(input.rstrip()))       
+        references.append(input.rstrip())
+
+        
+    df_references = pd.DataFrame(references)
+    df_references.columns = ['enclosure']
+    
+    df_references = df_references.merge(df_references.apply(lambda row: analyse_row(row), axis=1), 
+              left_index=True,
+              right_index=True)
+    
+    results = {}
+    
+    for output_type in df_references.output_type.unique():
+    
+        local_paths = [] 
+
+        for entry, row in df_references[df_references.output_type == output_type].iterrows():
+            ciop.log('INFO', row.output_type)
+            ciop.log('INFO', row.enclosure)
+
+            local_paths.append(ciop.copy(row.enclosure, '.'))
+
+
+        local_vrt = 'temp_vrt.xml'
+
+        ds = gdal.BuildVRT(local_vrt, local_paths)
+
+        ds.FlushCache()
+
+        translated_tif = '{}.tif'.format(output_type)
+
+        gdal.Translate(translated_tif,
+                           local_vrt)
+
+
+        src_ds = gdal.Open(local_paths[0])
+        ds = gdal.Open(translated_tif,  gdal.OF_UPDATE)
+
+        bands = []
+
+        for index in range(src_ds.RasterCount):
+
+            bands.append(src_ds.GetRasterBand(index+1).GetDescription())
+            ds.GetRasterBand(index+1).SetDescription(src_ds.GetRasterBand(index+1).GetDescription())
+
+
+        ds.FlushCache()
+ 
+        for file in (local_paths + [local_vrt]):
+
+            os.remove(file)
+
+        if bands[0] == '':
+            results[output_type] = {'file': translated_tif}
+        else:                                                           
+            shutil.move(translated_tif, '{}_{}_{}.tif'.format(output_type, bands[0], bands[-1]))
+
+            results[output_type] = {'file': '{}_{}_{}.tif'.format(output_type, bands[0], bands[-1]),
+                               'min_julian': bands[0],
+                               'max_julian': bands[-1]}
+
+        for key in results.keys():
+    
+            if key == 'ndvi': title = 'Sentinel-2 Smoothed NDVI'
+            if key == 'original_ndvi': title = 'Sentinel-2 Original NDVI'
+            if key == 's': title = 'Sentinel-2 Smoothed NDVI s factor'
+
+            with open(results[key]['file'].replace('.tif', '.properties'), 'wb') as file:
+                file.write('title={0}\n'.format(title))
+                file.write('date={0}\n'.format('/'.join([datetime.datetime.strptime(results['ndvi']['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
+                                                        datetime.datetime.strptime(results['ndvi']['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')])))
+                file.write('geometry={0}'.format(get_raster_wkt(results['ndvi']['file'])))
+        
+            
+            ciop.log('INFO', 'Publish {}'.format(results[key]['file']))
+            ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file']), metalink=True)
+            ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file'].replace('.tif', '.properties')), metalink=True)
+    
+try:
+    main()
+except SystemExit as e:
+    if e.args[0]:
+        clean_exit(e.args[0])
+    raise
+else:
+    atexit.register(clean_exit, 0)
