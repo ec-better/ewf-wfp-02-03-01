@@ -9,7 +9,6 @@ __pycache__
 *.png
 *.ipynb.py*
 runc
-application.xml
 *.properties
 *.geojson
 
