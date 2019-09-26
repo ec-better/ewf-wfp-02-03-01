@@ -157,24 +157,24 @@ def analyse_subtile(row, parameters):
     # get the geocoding for the sub-tile
     series['geo_transform'] = [ds_mem.GetGeoTransform()]
     series['projection'] = ds_mem.GetProjection()
-    
+
     for band in ['B04', 'B08', 'SCL']:
         # read the data
         series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
-    
+
     series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
-    
+
     series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04'])/(series['B08'] + series['B04']), np.nan)
-    
+
     ### Added to delete non-interpretable data of the NDVI. Check the source to understand the problem.
-    series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < 0)), np.nan, series['NDVI'])
-    
+    series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < -1)), np.nan, series['NDVI'])
+
     # remove the no longer needed bands
     for band in ['B04', 'B08', 'SCL']:
         series.pop(band, None)
-        
+
     ds_mem.FlushCache()
-    
+
     return pd.Series(series)
 
 def fromjulian(x):
