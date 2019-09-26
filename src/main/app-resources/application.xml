@@ -5,7 +5,7 @@
       <streamingExecutable>/application/tiling/run</streamingExecutable>
         <defaultParameters>
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">fbrito</parameter>
-            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime">AKCp5dKiSHkoCUiYeFxoifDB7ibby4ArgGGqD12NhToeHooDez664jEdFueE8RTgMar4UMEjF</parameter>
+            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime"></parameter>
         </defaultParameters>
        <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>

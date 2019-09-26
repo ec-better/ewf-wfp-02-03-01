@@ -28,8 +28,8 @@ def clean_exit(exit_code):
         log_level = 'ERROR'  
    
     msg = {SUCCESS: 'Processing successfully concluded',
-           ERR_RESOLUTION: 'Could not resolve Sentinel-1 product enclosure',
-           ERR_STAGEIN: 'Could not stage-in Sentinel-1 product', 
+           ERR_RESOLUTION: 'Could not resolve Sentinel-2 product enclosure',
+           ERR_STAGEIN: 'Could not stage-in Sentinel-2 product', 
            ERR_NO_OUTPUT: "Missing output"
     }
  
@@ -45,9 +45,7 @@ def main():
     data_pipeline_parameters['api_key'] = ciop.getparam('_T2Apikey')
     creds = '{}:{}'.format(data_pipeline_parameters['username'],
                            data_pipeline_parameters['api_key'])
-    
-    
-    
+
     os.chdir(ciop.tmp_dir)
  
     references = []
@@ -63,7 +61,6 @@ def main():
     search_result_params = []
     
     for index, end_point in enumerate(references):
-
         
         temp_df = pd.DataFrame.from_dict(ciop.search(end_point=end_point,
                                                      params=search_result_params,
@@ -80,7 +77,7 @@ def main():
     src_ds = gdal.Open(get_vsi_url(data_pipeline_results.iloc[0]['enclosure'], 
                                    data_pipeline_parameters['username'], 
                                    data_pipeline_parameters['api_key']))
-    
+
     if src_ds is None:
         raise(ValueError)
 
@@ -94,22 +91,20 @@ def main():
 
         print index, src_ds.GetRasterBand(index).GetDescription()
         bands[src_ds.GetRasterBand(index).GetDescription()] = index 
-        
+
     tiling_factor = 20
     step = pixels / tiling_factor
     
     sub_tiles = get_sub_tiles(data_pipeline_results, data_pipeline_parameters, tiling_factor)
-    
     
     for index, sub_tile in enumerate(sub_tiles.sub_tile.unique()):
     
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
                                                                                                                   '{}.pickle'.format(sub_tile)), 
                                                                                                      'gzip')
+        #if index >= 2: continue
         
-        #if index >= 10: continue
         ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
-        
         ciop.publish(os.path.join(ciop.tmp_dir, 
                                   '{}.pickle'.format(sub_tile)))
 

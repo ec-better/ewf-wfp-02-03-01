@@ -5,12 +5,14 @@ import sys
 
 sys.path.append('/'.join([os.environ['_CIOP_APPLICATION_PATH'], 'util']))
 sys.path.append('../util')
+
 from s2_whittaker_helpers import *
 
 import string
 import atexit
 import pandas as pd
-import cioppy 
+import cioppy
+import datetime
 ciop = cioppy.Cioppy()
     
 # define the exit codes
@@ -24,10 +26,10 @@ def clean_exit(exit_code):
     log_level = 'INFO'
     if exit_code != SUCCESS:
         log_level = 'ERROR'  
-   
+
     msg = {SUCCESS: 'Processing successfully concluded',
-           ERR_RESOLUTION: 'Could not resolve Sentinel-1 product enclosure',
-           ERR_STAGEIN: 'Could not stage-in Sentinel-1 product', 
+           ERR_RESOLUTION: 'Could not resolve Sentinel-2 product enclosure',
+           ERR_STAGEIN: 'Could not stage-in Sentinel-2 product', 
            ERR_NO_OUTPUT: "Missing output"
     }
  
@@ -50,8 +52,7 @@ def main():
 
     for input in sys.stdin:
         
-        #output_name = os.path.join(ciop.tmp_dir, 
-        #                           input.rstrip().split(',')[0])
+        #output_name = os.path.join(ciop.tmp_dir, input.rstrip().split(',')[0])
 
         ciop.log('INFO', 'Processing tile {}'.format(input.rstrip()))
         
@@ -59,45 +60,49 @@ def main():
                                   ciop.tmp_dir,
                                   extract=False)
         
-        
         ciop.log('INFO', 'Processing local tile {}'.format(local_subtile))
-        
+
         sub_tile = pd.read_pickle(local_subtile, 'gzip')
-        # add processing steps
         
         ciop.log('INFO', 'Getting the arrays for local tile {}'.format(local_subtile))
-        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters), axis=1), 
-              left_index=True,
-              right_index=True)
-        
-        
+
+        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters), axis=1),
+                                  left_index=True,
+                                  right_index=True)
+
         if sub_tile.duplicated(['day']).any():
     
             duplicated_day = sub_tile[sub_tile.duplicated(['day'])].day.values[0]
-
             duplicates = sub_tile[sub_tile.day == duplicated_day]
 
             for index, row in duplicates.iterrows():
 
                 if np.isnan(duplicates['NDVI'][index][0]).all():
-
+                
                     sub_tile  = sub_tile.drop([index])
-        
         
         ciop.log('INFO', 'Smoothing local tile {}'.format(local_subtile))
         dates = sub_tile['jday']
-        result = np.apply_along_axis(whittaker, 0, np.stack(sub_tile['NDVI']), dates)
         
+        # the generate_dates function creates a list of days with a delta time=5
+        full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=5)
+        
+        # the date_mask array is False when there is no product associated to that date.
+        # this is needed by the whittaker function in the interpolation step.
+        date_mask = np.array([True if x in list(dates) else False for x in full_dates])
+
+        ndvi_stack = np.stack(sub_tile['NDVI'])
+        result = np.apply_along_axis(whittaker, 0, ndvi_stack, date_mask)
+
+        ### Creating s GeoTiff ###
         ciop.log('INFO', 'Create the s GeoTIFF product for local tile {}'.format(local_subtile))
         geo_transform = sub_tile['geo_transform'].values[0][0]
         projection = sub_tile.projection.unique()[0]
-        
         band_number = 1
-
         cols = result.shape[1]
         rows = result.shape[2]
 
-        print (band_number, cols, rows)
+        print ('s', band_number, cols, rows)
 
         drv = gdal.GetDriverByName('GTiff')
 
@@ -108,47 +113,16 @@ def main():
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
-
         ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
-
         ds.FlushCache()
         
-        ciop.log('INFO', 'Create the ndvi GeoTIFF product for local tile {}'.format(local_subtile))
-        
-        band_number = result.shape[0] - 1
-
-        cols = result.shape[1]
-        rows = result.shape[2]
-
-        print (band_number, cols, rows)
-
-        drv = gdal.GetDriverByName('GTiff')
-
-        ds = drv.Create('ndvi_{}.tif'.format(os.path.basename(local_subtile)), 
-                        cols, rows, 
-                        band_number, 
-                        gdal.GDT_Float32)
-
-        ds.SetGeoTransform(geo_transform)
-        ds.SetProjection(projection)
-
-        for index, band in enumerate(range(0, band_number)):
-
-            ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)
-            ds.GetRasterBand(index + 1).SetDescription(dates.values[index])
-
-        ds.FlushCache()
-        
+        ### Creating original NDVI GeoTiff ###
         ciop.log('INFO', 'Create the original NDVI GeoTIFF product for local tile {}'.format(local_subtile))
-        ndvi_stack = np.stack(sub_tile['NDVI'])
-
-        band_number = len(ndvi_stack)
-
+        band_number = ndvi_stack.shape[0]
         cols = ndvi_stack.shape[1]
         rows = ndvi_stack.shape[2]
 
-        print (band_number, cols, rows)
-
+        print('original ndvi', band_number, cols, rows)
 
         drv = gdal.GetDriverByName('GTiff')
 
@@ -159,11 +133,58 @@ def main():
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
+        ds.FlushCache()
+        
+        ds = gdal.Open('original_ndvi_{}.tif'.format(os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
         for index, band in enumerate(range(0, band_number)):
+        
+            product_date = datetime.datetime.strptime(dates[index], '%Y%j').date()
+            date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
+            
+            metadata = dict()
+            metadata['date'] = date
 
             ds.GetRasterBand(index + 1).WriteArray(ndvi_stack[index], 0, 0)
-            ds.GetRasterBand(index + 1).SetDescription(dates.values[index])
+            ds.GetRasterBand(index + 1).SetDescription(dates[index])
+            ds.GetRasterBand(index + 1).SetMetadata(metadata)
+
+        ds.FlushCache()
+        
+        ### Creating NDVI GeoTiff ###
+        ciop.log('INFO', 'Create the ndvi GeoTIFF product for local tile {}'.format(local_subtile))
+        band_number = ndvi_stack.shape[0] - 1
+        cols = ndvi_stack.shape[1]
+        rows = ndvi_stack.shape[2]
+
+        print('ndvi', band_number, cols, rows)
+
+        drv = gdal.GetDriverByName('GTiff')
+
+        ds = drv.Create('ndvi_{}.tif'.format(os.path.basename(local_subtile)), 
+                        cols, rows, 
+                        band_number, 
+                        gdal.GDT_Float32)
+
+        ds.SetGeoTransform(geo_transform)
+        ds.SetProjection(projection)
+        ds.FlushCache()
+        
+        ds = gdal.Open('ndvi_{}.tif'.format(os.path.basename(local_subtile)), gdal.OF_UPDATE)
+
+        for index, band in enumerate(range(0, band_number)):
+        
+            product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
+            date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
+            band_is_interpolated = 'False' if full_dates[index] in list(dates) else 'True'
+
+            metadata = dict()
+            metadata['date'] = date
+            metadata['band_is_interpolated'] = band_is_interpolated
+
+            ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)
+            ds.GetRasterBand(index + 1).SetDescription(full_dates[index])
+            ds.GetRasterBand(index + 1).SetMetadata(metadata)
 
         ds.FlushCache()
         
@@ -172,7 +193,6 @@ def main():
                        'original_ndvi_{}.tif'.format(os.path.basename(local_subtile))]:
         
             ciop.log('INFO', 'Publish {}'.format(result))
-            
             ciop.publish(os.path.join(ciop.tmp_dir, result))
 
 try:

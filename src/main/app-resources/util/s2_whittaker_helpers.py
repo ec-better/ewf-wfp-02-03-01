@@ -1,4 +1,5 @@
-#from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function
+
 import os
 import sys 
 sys.path.append('/'.join([os.environ['_CIOP_APPLICATION_PATH'], 'util']))
@@ -15,10 +16,6 @@ from itertools import chain
 import cioppy
 import array
 import geopandas as gpd
-
-def hello_world():
-    
-    print 'Hello World!'
 
 def get_pipeline_results(pipeline_parameters, search_params):
     
@@ -66,49 +63,29 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
 
     for index, entry in data_pipeline_results.iterrows():
 
-        print entry.jday
+        print(entry.jday)
 
         src_ds = gdal.Open(get_vsi_url(entry.enclosure, 
                                        pipeline_parameters['username'], 
                                        pipeline_parameters['api_key']))
 
 
-        step_x = src_ds.RasterXSize / tiling_factor
-        step_y = src_ds.RasterYSize / tiling_factor
+        step_x = src_ds.RasterXSize // tiling_factor
+        step_y = src_ds.RasterYSize // tiling_factor
 
-        for x in range(0, src_ds.RasterXSize / step_x):
+        for x in range(0, src_ds.RasterXSize // step_x):
 
                 cols = step_x
                 start_x = x * step_x 
 
 
-                for y in range(0, src_ds.RasterYSize / step_y):
+                for y in range(0, src_ds.RasterYSize // step_y):
 
                     temp_dict = dict()
 
                     rows = step_y
                     start_y = y * step_y
-
-                    #print 'tile_{}_{}'.format(x, y) 
-
-                    #vsi_mem = '/vsimem/t.tif'
-                    #ds_src = src_ds
-
-                    #gdal.Translate(vsi_mem, 
-                    #               ds_src,
-                    #               srcWin=[start_x, start_y, cols, rows],
-                    #               bandList=[bands['B04'], bands['B08'], bands['SCL']])
-
-                    #ds_mem = gdal.Open(vsi_mem)
-
-                    #if ds_mem is None:
-                    #    raise
-
-                    #geo_transform = ds_mem.GetGeoTransform()
-                    #projection = ds_mem.GetProjection()
-
-                    #temp_dict['geo_transform'] = [geo_transform]
-                    #temp_dict['projection'] = projection
+                    
                     temp_dict['sub_tile'] = 'tile_{}_{}'.format(x, y)
                     temp_dict['start_x'] = start_x
                     temp_dict['start_y'] = start_y
@@ -120,17 +97,6 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
                     temp_dict['jday'] = entry.jday
                     temp_dict['enclosure'] = entry.enclosure
 
-                    #for index, band in enumerate(['B04', 'B08', 'SCL']):
-                    #    # read the data
-                    #    temp_dict[band] = np.array(ds_mem.GetRasterBand(index + 1).ReadAsArray())
-
-                    #temp_dict['MASK'] = ((temp_dict['SCL'] == 2) | (temp_dict['SCL'] == 4) | (temp_dict['SCL'] == 5) | (temp_dict['SCL'] == 6) | (temp_dict['SCL'] == 7) | (temp_dict['SCL'] == 10) | (temp_dict['SCL'] == 11)) & (temp_dict['B08'] + temp_dict['B04'] != 0)
-
-                    #temp_dict['NDVI'] = np.where(temp_dict['MASK'], (temp_dict['B08'] - temp_dict['B04']) / (temp_dict['B08'] + temp_dict['B04']).astype(np.float), np.nan)
-
-                    #for band in ['B04', 'B08', 'SCL']:
-                    #    temp_dict.pop(band, None)    
-
                     pd.Series(temp_dict)
 
                     sub_tiles = sub_tiles.append(pd.Series(temp_dict), ignore_index=True)  
@@ -140,7 +106,6 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
     return sub_tiles
 
 def get_vsi_url(enclosure, user, api_key):
-    
     
     parsed_url = urlparse(enclosure)
 
@@ -176,14 +141,13 @@ def analyse_subtile(row, parameters):
     for band in range(src_ds.RasterCount):
 
         band += 1
-
         bands[src_ds.GetRasterBand(band).GetDescription()] = band 
         
     vsi_mem = '/vsimem/t.tif'
    
     gdal.Translate(vsi_mem, 
                    src_ds,
-                    srcWin=[row.start_x, row.start_y, row.cols, row.rows])
+                   srcWin=[row.start_x, row.start_y, row.cols, row.rows])
     
     ds_mem = gdal.Open(vsi_mem)
     
@@ -200,85 +164,22 @@ def analyse_subtile(row, parameters):
     
     series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
     
-    series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04']) / (series['B08'] + series['B04']).astype(np.float), np.nan)
+    series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04'])/(series['B08'] + series['B04']), np.nan)
+    
+    ### Added to delete non-interpretable data of the NDVI. Check the source to understand the problem.
+    series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < 0)), np.nan, series['NDVI'])
     
     # remove the no longer needed bands
     for band in ['B04', 'B08', 'SCL']:
-        series.pop(band, None)    
+        series.pop(band, None)
+        
+    ds_mem.FlushCache()
     
     return pd.Series(series)
 
-class DateHelper(object):
-    """Helper class for handling dates in temporal interpolation."""
-
-    def __init__(self, rawdates, rtres, stres, start=None, nupdate=0):
-        """Creates the date lists from input.
-
-        Args:
-             rawdates: list of dates from raw file(s)
-             rtres: raw temporal resolution
-             stres: smooth temporal resolution
-             start: start date for custom interpolation
-             nupdate: number of points in time to be updated in file (backwards)
-            """
-
-        if start:
-            stop = (fromjulian(rawdates[-1]) + datetime.timedelta(rtres)).strftime('%Y%j')
-            tdiff = (fromjulian(stop) - fromjulian(rawdates[0])).days
-            self.daily = [(fromjulian(rawdates[0]) + datetime.timedelta(x)).strftime('%Y%j') for x in range(tdiff+1)]
-            self.target = [self.daily[x] for x in range(self.daily.index(start), len(self.daily), stres)]
-            self.target = self.target[-nupdate:]
-        else:
-            yrmin = int(min([x[:4] for x in rawdates]))
-            yrmax = int(max([x[:4] for x in rawdates]))
-            daily_tmp = [y for x in range(yrmin, yrmax+2, 1) for y in tvec(x, 1)]
-            stop = (fromjulian(rawdates[-1]) + datetime.timedelta(rtres)).strftime('%Y%j')
-            self.daily = daily_tmp[daily_tmp.index(rawdates[0]):daily_tmp.index(stop)+1]
-
-            if stres == 5:
-                target_temp = [y for x in range(yrmin, yrmax+1, 1) for y in pentvec(x)]
-            elif stres == 10:
-                target_temp = [y for x in range(yrmin, yrmax+1, 1) for y in dekvec(x)]
-            else:
-                target_temp = [y for x in range(yrmin, yrmax+1, 1) for y in tvec(x, stres)]
-            target_temp.sort()
-
-            for sd in self.daily:
-                if sd in target_temp:
-                    start_target = sd
-                    del sd
-                    break
-            for sd in reversed(self.daily):
-                if sd in target_temp:
-                    stop_target = sd
-                    del sd
-                    break
-            self.target = target_temp[target_temp.index(start_target):target_temp.index(stop_target)+1]
-            self.target = self.target[-nupdate:]
-
-    def getDV(self, nd):
-        """Gets an array of no-data values in daily timesteps.
-
-        Args:
-            nd: no-data value
-
-        Returns:
-            numpy array with no-data values in daily steps
-        """
-
-        return np.full(len(self.daily), nd, dtype='double')
-
-    def getDIX(self):
-        """Gets indices of target dates in daily no-data array.
-
-        Returns:
-            list with indices of target dates in no-data array
-        """
-
-        return [self.daily.index(x) for x in self.target]
-
 def fromjulian(x):
-    """Parses julian date string to datetime object.
+    """
+    Parses julian date string to datetime object.
 
     Args:
         x: julian date as string YYYYJJJ
@@ -288,98 +189,85 @@ def fromjulian(x):
     """
 
     return datetime.datetime.strptime(x, '%Y%j').date()
-
-def tvec(yr, step):
-    """Create MODIS-like date vector with given timestep.
+    
+def generate_dates(startdate_string=None, enddate_string=None, delta=5):
+    """
+    Generates a list of dates from a start date to an end date.
 
     Args:
-        yr: year
-        step: timestep
+        startdate_string: julian date as string YYYYJJJ
+        enddate_string: julian date as string YYYYJJJ
+        delta: integer timedelta between each date
 
     Returns:
-        list with dates
+        list of string julian dates YYYYJJJ
     """
 
-    start = fromjulian('{}001'.format(yr)) + datetime.timedelta()
-    tdiff = fromjulian('{}001'.format(yr+1)) - start
-    tv = [(start + datetime.timedelta(x)).strftime('%Y%j') for x in range(0, tdiff.days, step)]
-    return tv
+    
+    startdate = datetime.datetime.strptime(startdate_string, '%Y%j').date()
+    enddate = datetime.datetime.strptime(enddate_string, '%Y%j').date()
+    
+    date_generated = [startdate + datetime.timedelta(days=x) for x in range(0, (enddate-startdate).days+delta, delta)]
+    
+    datelist = ['{}{:03d}'.format(x.year, x.timetuple().tm_yday) for x in date_generated]
 
-def dekvec(yr):
-    """Create dekadal date vector for given year with fixed days.
+    return datelist
+
+def whittaker(ts, date_mask):
+    """
+    Apply the whittaker smoothing to a 1d array of floating values.
 
     Args:
-        yr: year
+        ts: array of floating values
+        date_mask: full list of julian dates as string YYYYJJJ
 
     Returns:
-        list of dates
+        list of floating values. The first value is the s smoothing parameter
     """
-
-    return([
-        datetime.datetime.strptime(str(yr)+y+x, '%Y%m%d').date().strftime('%Y%j')
-        for x in ['05', '15', '25'] for y in [str(z).zfill(2)
-                                              for z in range(1, 13)]
-    ])
-
-
-def plot(y, dts,z=None,z_asy=None):
-    plt.close()
-    xax = [fromjulian(x) for x in dts]
-    plt.figure(figsize=(15,8))
-    plt.ylim(0,1)
-    plt.plot(xax,y,label='y')
-
-    try:
-        plt.plot(xax,z,label='z')
-    except ValueError:
-        pass
     
-    try:
-        plt.plot(xax,z_asy,label='z_asy')
-    except ValueError:
-        pass
+    #  mask is True when the value is np.nan
+    mask = np.isnan(ts)
     
-    plt.legend()
-    plt.show()
+    # the output is an  array full of np.nan by default
+    ndvi_smooth = np.array([np.nan]*len(date_mask))
     
-def whittaker(ts, dates):
-    
-    mask = np.ones(len(dates), dtype=bool)
-
-    mask[np.argwhere(np.isnan(ts))] = False
-    
-    if not np.any(mask.astype(int)):
+    # check if all values are np.npn
+    if not mask.all():
         
-        loptvp = -999
-        zvp = 0
-        return zvp, loptvp
-    
-    ts = ts[mask]
-    
-    w = np.array((ts!=-3000)*1,dtype='double')
+        # parameters needed for the first smoothing without interpolation
+        ts_not_nan = ts[~mask]
 
-    # lrange shall be [-2, 4] in steps of 0.1 (TBC)
-    lrange = array.array('d', np.linspace(-2, 4, 60))
+        w = np.ones(len(ts_not_nan), dtype='double')
 
-    try:
+        lrange = array.array('d', np.linspace(-2, 4, 60))
         
-        # apply whittaker filter with V-curve
-        zv, loptv = ws2doptv(ts, w, lrange)
-        zvp, loptvp = ws2doptvp(ts, w, lrange, p=0.9)
-    except(IndexError):
+        try: 
+            # apply whittaker filter with V-curve
+            zv, loptv = ws2doptv(ts_not_nan, w, lrange)
+            
+            #parameters needed for the interpolation step
+            dvec = np.zeros(len(date_mask))
+            
+            w = np.ones(len(ts), dtype='double')
+            
+            w[mask] = 0
+            
+            # adding new dates with no associated product to the weights
+            for idx, el in enumerate(date_mask):
+                if not el:
+                    w = np.insert(w, idx, 0)
+
+            dvec[w==1] = zv
+            
+            # apply whittaker filter with very low smoothing to interpolate
+            ndvi_smooth = ws2d(dvec, 0.0001, w)
+
+        except Exception as e:
+            loptv = -999
+            print(e)
+            print(mask)
+
+    else:
+        loptv = -999
         
-        loptvp = -999
-        zvp = 0
-
-    except(SystemError):
-        #loptvp = -999
-        #zvp = 0
-        print mask
-
-    ndvi_smooth = pd.Series.to_frame(dates).merge(pd.DataFrame(np.column_stack((dates[mask], np.array(zvp))),
-                                                 columns=['jday', 'sndvi']), 
-                                    on='jday',
-                                    how='left').drop(['jday'], axis=1).values.T[0]
-    
-    
-    return tuple(chain(np.append([loptvp], ndvi_smooth)))  
+    return tuple(np.append(loptv, ndvi_smooth))
