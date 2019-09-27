@@ -5,7 +5,7 @@
       <streamingExecutable>/application/tiling/run</streamingExecutable>
         <defaultParameters>
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">fbrito</parameter>
-            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime"></parameter>
+            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime">AKCp5dKiSHkoCUiYeFxoifDB7ibby4ArgGGqD12NhToeHooDez664jEdFueE8RTgMar4UMEjF</parameter>
         </defaultParameters>
        <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
@@ -15,7 +15,26 @@
       <streamingExecutable>/application/subtile/run</streamingExecutable>
         <defaultParameters>
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">fbrito</parameter>
-            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime"></parameter>
+            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime">AKCp5dKiSHkoCUiYeFxoifDB7ibby4ArgGGqD12NhToeHooDez664jEdFueE8RTgMar4UMEjF</parameter>
+            <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
+                <options>
+                    <option>NDVI</option>
+                    <option>B01</option>
+                    <option>B02</option>
+                    <option>B03</option>
+                    <option>B04</option>
+                    <option>B05</option>
+                    <option>B06</option>
+                    <option>B07</option>
+                    <option>B08</option>
+                    <option>B8A</option>
+                    <option>B09</option>
+                    <option>B11</option>
+                    <option>B12</option>
+                    <default>B01</default>
+                </options>
+             </parameter>   
+            
         </defaultParameters>
       <defaultJobconf>
           <property id="mapred.task.timeout">3600000</property> <!-- one hour -->
@@ -23,6 +42,26 @@
     </jobTemplate>
     <jobTemplate id="merge">
       <streamingExecutable>/application/merge/run</streamingExecutable>
+         <defaultParameters>
+        <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
+                <options>
+                    <option>NDVI</option>
+                    <option>B01</option>
+                    <option>B02</option>
+                    <option>B03</option>
+                    <option>B04</option>
+                    <option>B05</option>
+                    <option>B06</option>
+                    <option>B07</option>
+                    <option>B08</option>
+                    <option>B8A</option>
+                    <option>B09</option>
+                    <option>B11</option>
+                    <option>B12</option>
+                    <default>B01</default>
+                </options>
+             </parameter> 
+              </defaultParameters>
       <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
         <property id="mapred.task.timeout">3600000</property> <!-- one hour -->

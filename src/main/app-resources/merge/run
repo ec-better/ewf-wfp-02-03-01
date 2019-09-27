@@ -37,18 +37,18 @@ def clean_exit(exit_code):
  
     ciop.log(log_level, msg[exit_code])  
 
-def analyse_row(row):
+def analyse_row(row, band_to_process):
     
     series = dict()
 
     if 's_' in row.enclosure:
         output_type = 's'
     
-    elif 'original_ndvi' in row.enclosure:
-        output_type = 'original_ndvi'
+    elif 'original_{}'.format(band_to_process) in row.enclosure:
+        output_type = 'original_{}'.format(band_to_process)
         
     else: 
-        output_type = 'ndvi'
+        output_type = band_to_process
 
     series['output_type'] = output_type
    
@@ -83,6 +83,8 @@ def main():
      
     ciop = cioppy.Cioppy()
 
+    band_to_process = ciop.getparam('band')
+
     os.chdir(ciop.tmp_dir)
     
     references = []
@@ -94,7 +96,7 @@ def main():
     df_references = pd.DataFrame(references)
     df_references.columns = ['enclosure']
     
-    df_references = df_references.merge(df_references.apply(lambda row: analyse_row(row), axis=1), 
+    df_references = df_references.merge(df_references.apply(lambda row: analyse_row(row, band_to_process), axis=1), 
               left_index=True,
               right_index=True)
     
@@ -150,15 +152,15 @@ def main():
 
         for key in results.keys():
     
-            if key == 'ndvi': title = 'Sentinel-2 Smoothed NDVI'
-            if key == 'original_ndvi': title = 'Sentinel-2 Original NDVI'
-            if key == 's': title = 'Sentinel-2 Smoothed NDVI s factor'
+            if key == band_to_process: title = 'Sentinel-2 Smoothed {}'.format(band_to_process)
+            if key == 'original_{}'.format(band_to_process): title = 'Sentinel-2 Original {}'.format(band_to_process)
+            if key == 's': title = 'Sentinel-2 Smoothed {} s factor'.format(band_to_process)
 
             with open(results[key]['file'].replace('.tif', '.properties'), 'wb') as file:
                 file.write('title={0}\n'.format(title))
-                file.write('date={0}\n'.format('/'.join([datetime.datetime.strptime(results['ndvi']['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
-                                                        datetime.datetime.strptime(results['ndvi']['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')])))
-                file.write('geometry={0}'.format(get_raster_wkt(results['ndvi']['file'])))
+                file.write('date={0}\n'.format('/'.join([datetime.datetime.strptime(results[band_to_process]['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
+                                                        datetime.datetime.strptime(results[band_to_process]['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')])))
+                file.write('geometry={0}'.format(get_raster_wkt(results[band_to_process]['file'])))
 
             ciop.log('INFO', 'Publish {}'.format(results[key]['file']))
             ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file']), metalink=True)
