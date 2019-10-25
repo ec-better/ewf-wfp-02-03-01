@@ -5,7 +5,7 @@ import os
 import unittest
 import string
 from StringIO import StringIO
-
+import py_compile
 # Simulating the Runtime environment
 os.environ['TMPDIR'] = '/tmp'
 os.environ['_CIOP_APPLICATION_PATH'] = '/application'
@@ -34,5 +34,26 @@ class NodeATestCase(unittest.TestCase):
         log_message = string.split(output ,'\n')[1][27:]
         self.assertEqual(log_message, "[INFO   ] [user process] processing input: "+ input_reference, "Input reference not logged")
 
+    def test_compile_run_tiling(self):
+        
+        res = py_compile.compile('../main/app-resources/tiling/run')
+        
+        self.assertTrue(res is None)
+        
+    def test_compile_run_subtile(self):
+        
+        res = py_compile.compile('../main/app-resources/subtile/run')
+        
+        self.assertTrue(res is None)   
+    
+    def test_compile_run_merge(self):
+        
+        
+        try:
+            res = py_compile.compile('/workspace/ewf-wfp-02-03-01/src/main/app-resources/merge/run')
+        except SyntaxError:
+            print(res)
+            self.assertTrue(False)  
+        
 if __name__ == '__main__':
     unittest.main()

@@ -15,6 +15,10 @@ import shutil
 from shapely.geometry import box
 import datetime
 
+import lxml.etree as etree
+import numpy as np
+from shapely.wkt import loads
+
 ciop = cioppy.Cioppy()
     
 # define the exit codes
@@ -55,6 +59,7 @@ def analyse_row(row, band_to_process):
     return pd.Series(series)    
 
 def get_raster_wkt(raster):
+    
     src = gdal.Open(raster)
     ulx, xres, xskew, uly, yskew, yres  = src.GetGeoTransform()
     lrx = ulx + (src.RasterXSize * xres)
@@ -78,6 +83,65 @@ def get_raster_wkt(raster):
        transform.TransformPoint(ulx, lry)[1],
        transform.TransformPoint(lrx, uly)[0],
        transform.TransformPoint(lrx, uly)[1]).wkt
+
+
+def create_metadata(metadata):
+
+    namespaces = dict()
+
+    namespaces['opt'] = 'http://www.opengis.net/opt/2.1'
+    namespaces['om']  = 'http://www.opengis.net/om/2.0'
+    namespaces['gml'] = 'http://www.opengis.net/gml/3.2'
+    namespaces['eop'] = 'http://www.opengis.net/eop/2.1'
+    namespaces['sar'] = 'http://www.opengis.net/sar/2.1'
+    namespaces['ssp'] = 'http://www.opengis.net/ssp/2.1'
+    
+    
+    for key, value in namespaces.items():
+        etree.register_namespace(key, value)
+   
+    root = etree.Element('{{}}EarthObservation'.format(namespaces['ssp']))
+
+    # Time
+    phenomenon_time = etree.SubElement(root, '{{{}}}phenomenonTime'.format(namespaces['om']))
+    time_period = etree.SubElement(phenomenon_time, '{{{}}}TimePeriod'.format(namespaces['gml']))
+    begin_position = etree.SubElement(time_period, '{{{}}}beginPosition'.format(namespaces['gml']))
+    end_position = etree.SubElement(time_period, '{{{}}}endPosition'.format(namespaces['gml']))
+    
+    feature_of_interest = etree.SubElement(root, '{{{}}}featureOfInterest'.format(namespaces['om']))
+    footprint = etree.SubElement(feature_of_interest, '{{{}}}Footprint'.format(namespaces['ssp']))
+    multi_extentOf = etree.SubElement(footprint, '{{{}}}multiExtentOf'.format(namespaces['ssp']))
+    multi_surface = etree.SubElement(multi_extentOf, '{{{}}}MultiSurface'.format(namespaces['gml']))
+    surface_members = etree.SubElement(multi_surface, '{{{}}}surfaceMembers'.format(namespaces['gml']))
+    polygon = etree.SubElement(surface_members, '{{{}}}Polygon'.format(namespaces['gml']))
+    exterior = etree.SubElement(polygon, '{{{}}}exterior'.format(namespaces['gml']))
+    linear_ring = etree.SubElement(exterior, '{{{}}}LinearRing'.format(namespaces['gml']))
+    poslist = etree.SubElement(linear_ring, '{{{}}}posList'.format(namespaces['gml']))
+
+    # Metadata property
+    metadata_property = etree.SubElement(root, '{{{}}}metaDataProperty'.format(namespaces['eop']))
+    earth_observation_metadata = etree.SubElement(metadata_property, '{{{}}}EarthObservationMetaData'.format(namespaces['eop']))
+    identifier = etree.SubElement(earth_observation_metadata, '{{{}}}identifier'.format(namespaces['eop']))
+    product_type = etree.SubElement(earth_observation_metadata, '{{{}}}productType'.format(namespaces['eop']))
+    
+    
+    begin_position.text = metadata['startdate']
+    end_position.text = metadata['enddate']
+   
+    coords = np.asarray([t[::-1] for t in list(loads(metadata['wkt']).exterior.coords)]).tolist()
+ 
+    pos_list = ''
+    for elem in coords:
+        pos_list += ' '.join(str(e) for e in elem) + ' '   
+
+    poslist.attrib['count'] = str(len(coords))
+    poslist.text = pos_list
+    
+    
+    identifier.text = metadata['identifier'] 
+    product_type.text = metadata['product_type'] 
+    
+    return etree.tostring(root, pretty_print=True)
 
 def main():
      
@@ -121,6 +185,7 @@ def main():
         gdal.Translate(translated_tif,
                            local_vrt)
 
+        # get the band information from the first tile
         src_ds = gdal.Open(local_paths[0])
         
         ds = gdal.Open(translated_tif, gdal.OF_UPDATE)
@@ -138,6 +203,7 @@ def main():
         
         print(gdal.Info('{}.tif'.format(output_type)))
 
+        # clean-up the no-longer needed tiles
         for file in (local_paths + [local_vrt]):
             os.remove(file)
 
@@ -147,24 +213,151 @@ def main():
             shutil.move(translated_tif, '{}_{}_{}.tif'.format(output_type, bands[0], bands[-1]))
 
             results[output_type] = {'file': '{}_{}_{}.tif'.format(output_type, bands[0], bands[-1]),
-                               'min_julian': bands[0],
-                               'max_julian': bands[-1]}
+                                    'min_julian': bands[0],
+                                    'max_julian': bands[-1]}
 
-        for key in results.keys():
+        
+    for key in results.keys():
+
+        ciop.log('INFO', 'key: {}'.format(key))
+        if key == 's': 
+
+            title = 'Sentinel-2 {} s factor from {} to {}'.format(band_to_process, results[band_to_process]['min_julian'], results[band_to_process]['max_julian'])
+
+            prd_type = 'S'
+
+            s_output_name = 'S2_{}_{}_J{}_J{}.tif'.format(band_to_process, prd_type, results[band_to_process]['min_julian'], results[band_to_process]['max_julian'])
+
+            src_ds = gdal.Open(results[key]['file'])
+
+            drv = gdal.GetDriverByName('GTiff')
+
+            ciop.log('INFO', 'Creating product {} type {}'.format(s_output_name, prd_type))
+
+            ds = drv.Create(s_output_name,
+                            src_ds.RasterXSize, 
+                            src_ds.RasterYSize, 
+                            src_ds.RasterCount, 
+                            gdal.GDT_Float32)
+
+            ds.SetGeoTransform(src_ds.GetGeoTransform())
+            ds.SetProjection(src_ds.GetProjection())
+
+            ds.GetRasterBand(1).WriteArray(src_ds.GetRasterBand(1).ReadAsArray(), 0, 0)
+            ds.FlushCache()
+            
+            metadata = dict()
+            
+            metadata['identifier'] = s_output_name.replace('.tif', '')
+            metadata['startdate'] = datetime.datetime.strptime(results[band_to_process]['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
+            metadata['enddate'] = datetime.datetime.strptime(results[band_to_process]['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
+            metadata['product_type'] = 'S2_S'
+            metadata['wkt'] =get_raster_wkt(s_output_name)
+            
+            eop_xml = s_output_name.replace('.tif', '.xml')
+            with open(eop_xml, 'wb') as file:
+                file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                file.write(create_metadata(metadata))
+            
+            with open(s_output_name.replace('.tif', '.properties'), 'wb') as file:
+                file.write('title={}\n'.format(title))
+                
+            ciop.log('INFO', 'Publish {}'.format(s_output_name))
+            ciop.publish(os.path.join(ciop.tmp_dir, s_output_name), metalink=True)
+            ciop.publish(os.path.join(ciop.tmp_dir, s_output_name.replace('.tif', '.properties')), metalink=True)
+            ciop.publish(os.path.join(ciop.tmp_dir, s_output_name.replace('.xml', '.properties')), metalink=True)
     
-            if key == band_to_process: title = 'Sentinel-2 Smoothed {}'.format(band_to_process)
-            if key == 'original_{}'.format(band_to_process): title = 'Sentinel-2 Original {}'.format(band_to_process)
-            if key == 's': title = 'Sentinel-2 Smoothed {} s factor'.format(band_to_process)
+        else:    
 
-            with open(results[key]['file'].replace('.tif', '.properties'), 'wb') as file:
-                file.write('title={0}\n'.format(title))
-                file.write('date={0}\n'.format('/'.join([datetime.datetime.strptime(results[band_to_process]['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
-                                                        datetime.datetime.strptime(results[band_to_process]['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')])))
-                file.write('geometry={0}'.format(get_raster_wkt(results[band_to_process]['file'])))
+            #####
+            bands = []
+            meta = []
+            ciop.log('INFO', 'Opening {} - {}'.format(key, results[key]['file']))
 
-            ciop.log('INFO', 'Publish {}'.format(results[key]['file']))
-            ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file']), metalink=True)
-            ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file'].replace('.tif', '.properties')), metalink=True)
+            src_ds = gdal.Open(results[key]['file'])
+
+            for index in range(src_ds.RasterCount):
+
+                description = src_ds.GetRasterBand(index+1).GetDescription()
+
+                meta = src_ds.GetRasterBand(index+1).GetMetadata()
+                print index
+
+                if key == 'original_{}'.format(band_to_process):
+
+                    title = 'Sentinel-2 Original {}'.format(band_to_process)
+                    prd_type = 'ORI'
+
+                else:
+
+                    if meta['band_is_interpolated'] == 'True':
+
+                        prd_type = 'SYN'
+                        title = 'Sentinel-2 {} {} Julian day {}, date {}'.format(band_to_process, 'synthetic', description, datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%d'))
+                    else:
+
+                        prd_type = 'NAT'
+                        title = 'Sentinel-2 {} {} Julian day {}, date {}'.format(band_to_process, 'native', description, datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%d'))
+
+                daily_output_name = 'S2_{}_{}_J{}_{}.tif'.format(band_to_process, prd_type, description, meta['date'])
+
+                drv = gdal.GetDriverByName('GTiff')
+
+                ciop.log('INFO', 'Creating product {} type {}'.format(daily_output_name, prd_type))
+
+                ds = drv.Create(daily_output_name, 
+                                    src_ds.RasterXSize, 
+                                src_ds.RasterYSize, 
+                                    src_ds.RasterCount, 
+                                    gdal.GDT_Float32)
+
+                ds.SetGeoTransform(src_ds.GetGeoTransform())
+                ds.SetProjection(src_ds.GetProjection())
+
+                #a = src_ds.GetRasterBand(index+1)
+                ds.GetRasterBand(1).WriteArray(src_ds.GetRasterBand(index+1).ReadAsArray(), 0, 0)
+                ds.FlushCache()
+
+                
+                metadata = dict()
+            
+                metadata['identifier'] = daily_output_name.replace('.tif', '')
+                metadata['startdate'] = datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
+                metadata['enddate'] = datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
+                metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, prd_type)
+                metadata['wkt'] = get_raster_wkt(daily_output_name)
+
+                eop_xml = daily_output_name.replace('.tif', '.xml')
+                with open(eop_xml, 'wb') as file:
+                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(create_metadata(metadata))
+                
+                with open(daily_output_name.replace('.tif', '.properties'), 'wb') as file:
+                    file.write('title={}\n'.format(title))
+               #     file.write('date={}/{}\n'.format(datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
+               #                                      datetime.datetime.strptime(description, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')))
+               #     file.write('geometry={}'.format(get_raster_wkt(daily_output_name)))
+
+                ciop.log('INFO', 'Publish {}'.format(daily_output_name))
+                ciop.publish(os.path.join(ciop.tmp_dir, daily_output_name), metalink=True)
+                ciop.publish(os.path.join(ciop.tmp_dir, daily_output_name.replace('.tif', '.properties')), metalink=True)
+                ciop.publish(os.path.join(ciop.tmp_dir, daily_output_name.replace('.tif', '.xml')), metalink=True)
+                    
+                ####
+
+            #if key == band_to_process: title = 'Sentinel-2 Smoothed {}'.format(band_to_process)
+            #if key == 'original_{}'.format(band_to_process): title = 'Sentinel-2 Original {}'.format(band_to_process)
+            #if key == 's': title = 'Sentinel-2 Smoothed {} s factor'.format(band_to_process)
+
+            #with open(results[key]['file'].replace('.tif', '.properties'), 'wb') as file:
+            #    file.write('title={0}\n'.format(title))
+            #    file.write('date={0}\n'.format('/'.join([datetime.datetime.strptime(results[band_to_process]['min_julian'], '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z'),
+            #                                            datetime.datetime.strptime(results[band_to_process]['max_julian'], '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')])))
+            #    file.write('geometry={0}'.format(get_raster_wkt(results[band_to_process]['file'])))
+
+            #ciop.log('INFO', 'Publish {}'.format(results[key]['file']))
+            #ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file']), metalink=True)
+            #ciop.publish(os.path.join(ciop.tmp_dir, results[key]['file'].replace('.tif', '.properties')), metalink=True)
 
 try:
     main()

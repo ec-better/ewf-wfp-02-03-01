@@ -122,7 +122,7 @@ def main():
         cols = data_stack.shape[1]
         rows = data_stack.shape[2]
 
-        print('original values', band_number, cols, rows)
+        ciop.log('DEBUG', ' '.join(['original values', str(band_number), str(cols), str(rows)]))
 
         drv = gdal.GetDriverByName('GTiff')
 
@@ -153,11 +153,11 @@ def main():
         
         ### Creating GeoTiff ###
         ciop.log('INFO', 'Create the {} GeoTIFF product for local tile {}'.format(band_to_process, local_subtile))
-        band_number = data_stack.shape[0] - 1
-        cols = data_stack.shape[1]
-        rows = data_stack.shape[2]
+        band_number = result.shape[0] - 1
+        cols = result.shape[1]
+        rows = result.shape[2]
 
-        print(band, band_number, cols, rows)
+        ciop.log('DEBUG', ' '.join([str(band), str(band_number), str(cols), str(rows)]))
 
         drv = gdal.GetDriverByName('GTiff')
 

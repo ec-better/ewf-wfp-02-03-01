@@ -12,3 +12,5 @@ runc
 *.properties
 *.geojson
 
+*.zip
+*_example.xml
