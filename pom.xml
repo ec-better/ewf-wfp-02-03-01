@@ -7,11 +7,11 @@
   <name>ewf-wfp-02-03-01</name>
   <parent>
     <groupId>com.terradue</groupId>
-    <artifactId>dcs-python-parent</artifactId>
-    <version>2.0.2</version>
+    <artifactId>ewf-python-parent</artifactId>
+    <version>1.0</version>
   </parent>
   <description>This is a short description</description>
-  <version>0.1</version>
+  <version>0.2</version>
   <properties>
     <summary>Regular Sentinel-2 smoothed and gap-filled NDVI timeseries</summary>
     <description>This is a short description</description>
