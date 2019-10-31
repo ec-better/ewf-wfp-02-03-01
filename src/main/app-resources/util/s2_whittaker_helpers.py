@@ -10,7 +10,6 @@ import osr
 from urlparse import urlparse
 import pandas as pd
 import datetime
-import matplotlib.pyplot as plt
 from whittaker import ws2d, ws2doptv, ws2doptvp
 from itertools import chain
 import cioppy
