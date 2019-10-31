@@ -4,8 +4,8 @@
     <jobTemplate id="tiling">
       <streamingExecutable>/application/tiling/run</streamingExecutable>
         <defaultParameters>
-            <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">fbrito</parameter>
-            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime">AKCp5dKiSHkoCUiYeFxoifDB7ibby4ArgGGqD12NhToeHooDez664jEdFueE8RTgMar4UMEjF</parameter>
+            <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
+            <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
         </defaultParameters>
        <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
@@ -14,8 +14,8 @@
     <jobTemplate id="subtile">
       <streamingExecutable>/application/subtile/run</streamingExecutable>
         <defaultParameters>
-            <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime">fbrito</parameter>
-            <parameter id='_T2Apikey' title='API key' abstract='API key' scope="runtime">AKCp5dKiSHkoCUiYeFxoifDB7ibby4ArgGGqD12NhToeHooDez664jEdFueE8RTgMar4UMEjF</parameter>
+            <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
+            <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
             <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
                 <options>
                     <option>NDVI</option>
@@ -73,7 +73,7 @@
     <node id="tiling">
       <job id="tiling"/>
       <sources>
-        <source id="source" title="ARD S2 L2A references" abstract="ARD S2 L2A references" refid="string:list" scope="runtime">https://catalog.terradue.com//ard-s2-boa-reflectances/cat/f28ebdc54e2c4ec4b7524295a27e25b1/search?uid=20999551B78AEC145489927071EF2AEF4F7C2BD5,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/3e5a46f1d0d14c7d8a67efc13f7a4e6a/search?uid=FB6C21C2C99EAE5C81F3FD20980D7793E12691C9,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/2061fc304ac4463f803a1e8994783328/search?uid=9C9B433F6EDC2BBE7B793ABBB783CBBAEC9430DF,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/90a12d132f8d446eadd93d5e66387b59/search?uid=412C3451F0612A082D4C327616BD9DFD957759BF,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/8bcec9a8af95478abf6f4b9bf7ebd8a7/search?uid=C0FDA617F118F021EDC59114E5BF147FFB395D54,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/2493eb216110420d896b69cae4c1bd74/search?uid=D5F35C6C5CE7C5A591AFBA83B8A87F71828EF83C,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/0962a893f7d9458d8dde2952fa60590a/search?uid=FD869F2EA6124B38487D1B136A5340671D1458E6,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/4320ede8d82d424486b6241b4e893d54/search?uid=C113D00A70D52135457BF3A79264D495293DB846,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/439bd4a60b5747c8966eff6af76c4b3e/search?uid=4791731B7B611D951E978AE3F83993B5E2EC1DAA,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/61e484b7d4dd497282d49b003e6b1f77/search?uid=B9011739A7A17BD592258DF719ED12B048B5A28E,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/519557df78764844bae234beb8e8af7c/search?uid=DECB85D0DC0F66D1270FF1884B3E4966FA4799B2,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/18001976362340c59eb15cd0fc1e0db5/search?uid=80DE367934E087FA8508A859A2DAD425AFE4A1CA,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/563f6e6efd994233be4f6089dd90c742/search?uid=607C41FF590D1D2AA9254099623D2291DB13FE2F,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/1e3c1c1de48d44b7913ec219d5009ffb/search?uid=5493ABB6FB1782E9E027E1D4BBB7F5CEB97B3B14,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/383b5943c22e40d4b74c51ea46f818b7/search?uid=8623F826A245BC6DD987EE693949C715A1B7D13B,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/da15d443411a41c8975f68af42ec60df/search?uid=A2C7BD3A35153213B0A6548E02CDC6AE8BA682F2,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/7a34baebfc5149aab10fd77546d44af2/search?uid=89B834B3D693F15C93643EF937F24DA8C503D41E,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/c8032eef15dd41099e91a341423f997f/search?uid=DEE01BA4A6EC0DBA382E2F2AB3EB733906C99114,https://catalog.terradue.com//ard-s2-boa-reflectances/cat/52c721f71f754e6681db061649dc07da/search?uid=EA71BF499B6060E96C740410F06EA6B670A92B25</source>
+        <source id="source" title="ARD S2 L2A references" abstract="ARD S2 L2A references" refid="string:list" scope="runtime"></source>
       </sources>
     </node>
     <node id="subtile">
