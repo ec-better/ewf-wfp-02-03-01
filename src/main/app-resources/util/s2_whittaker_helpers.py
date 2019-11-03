@@ -33,7 +33,7 @@ def get_pipeline_results(pipeline_parameters, search_params):
                                       model='GeoTime',
                                       creds=creds))
     
-    fields = 'title,identifier,self,enclosure,cat,cc,wkt,updated,startdate'
+    fields = 'title,identifier,self,enclosure,cat,cc,wkt,updated,startdate,vs:"tileid"'
     search_result_params = []
 
     df = pd.DataFrame()
@@ -85,7 +85,7 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
                     rows = step_y
                     start_y = y * step_y
                     
-                    temp_dict['sub_tile'] = 'tile_{}_{}'.format(x, y)
+                    temp_dict['sub_tile'] = 'tile_{}_{}_{}'.format(x, y, entry.title[38:44])
                     temp_dict['start_x'] = start_x
                     temp_dict['start_y'] = start_y
                     temp_dict['cols'] = cols
@@ -126,6 +126,22 @@ def analyse_row(row):
     
     return pd.Series(series)
 
+def analyse_merge_row(row, band_to_process):
+    
+    series = dict()
+
+    if 's_' in row.enclosure:
+        output_type = 's'
+    
+    elif 'original_{}'.format(band_to_process) in row.enclosure:
+        output_type = 'original_{}'.format(band_to_process)
+        
+    else: 
+        output_type = band_to_process
+
+    series['output_type'] = output_type
+    series['tile'] = os.path.basename(row.enclosure).split('_')[-1].split('.')[0]
+    return pd.Series(series)    
 
 def analyse_subtile(row, parameters, band_to_analyse):
     
