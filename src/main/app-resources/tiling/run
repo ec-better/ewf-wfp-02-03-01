@@ -102,7 +102,7 @@ def main():
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
                                                                                                                   '{}.pickle'.format(sub_tile)), 
                                                                                                      'gzip')
-        if index >= 2: continue
+        #if index >= 2: continue
         
         ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
         ciop.publish(os.path.join(ciop.tmp_dir, 
