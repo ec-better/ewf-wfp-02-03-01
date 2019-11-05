@@ -61,7 +61,7 @@ def main():
     search_result_params = []
     
     for index, end_point in enumerate(references):
-        
+        ciop.log('INFO', 'Getting metadata for {}'.format(end_point))      
         temp_df = pd.DataFrame.from_dict(ciop.search(end_point=end_point,
                                                      params=search_result_params,
                                                      output_fields=fields, 
