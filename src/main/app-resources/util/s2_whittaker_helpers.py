@@ -179,7 +179,8 @@ def analyse_subtile(row, parameters, band_to_analyse):
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
 
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
+        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
 
         series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04'])/(series['B08'] + series['B04']), np.nan)
 
@@ -187,7 +188,9 @@ def analyse_subtile(row, parameters, band_to_analyse):
         series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < -1)), np.nan, series['NDVI'])
 
         # remove the no longer needed bands
-        for band in ['B04', 'B08', 'SCL']:
+        #for band in ['B04', 'B08', 'SCL']:
+        #    series.pop(band, None)
+        for band in ['B04', 'B08']:
             series.pop(band, None)
 
     else:
@@ -197,9 +200,10 @@ def analyse_subtile(row, parameters, band_to_analyse):
             
         series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
         
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
-        series[band_to_analyse] = np.where(series['MASK'], series[band_to_analyse], np.nan)
+        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
         
+        series[band_to_analyse] = np.where(series['MASK'], series[band_to_analyse], np.nan)
         
     ds_mem.FlushCache()
 
@@ -267,11 +271,11 @@ def whittaker(ts, date_mask):
 
         w = np.ones(len(ts_not_nan), dtype='double')
 
-        lrange = array.array('d', np.linspace(-2, 4, 60))
+        lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
             # apply whittaker filter with V-curve
-            zv, loptv = ws2doptv(ts_not_nan, w, lrange)
+            zv, loptv = ws2doptvp(ts_not_nan, w, lrange, p=0.90)
             
             #parameters needed for the interpolation step
             dvec = np.zeros(len(date_mask))

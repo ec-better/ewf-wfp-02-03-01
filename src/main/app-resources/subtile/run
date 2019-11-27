@@ -47,6 +47,7 @@ def main():
     
     data_pipeline_parameters['username'] = ciop.getparam('_T2Username')
     data_pipeline_parameters['api_key'] = ciop.getparam('_T2ApiKey')
+
     creds = '{}:{}'.format(data_pipeline_parameters['username'],
                            data_pipeline_parameters['api_key'])
 
