@@ -180,8 +180,8 @@ def main():
             desc = src_ds.GetRasterBand(index+1).GetDescription()
             meta = src_ds.GetRasterBand(index+1).GetMetadata()
 
-            if desc == '':
-                #s
+            if desc == '' or 'SCL' in desc:
+                #s or lag1
                 output_name = 'S2_{}_{}'.format(output_type, tile)
                 translated_tif = '{}.tif'.format(output_name)
             else:
@@ -194,9 +194,6 @@ def main():
                                                              meta['date'])
 
                     translated_tif = '{}.tif'.format(output_name)
-
-
-
                 else:
                     # original
                     output_name = 'S2_{}_{}_{}_{}_{}'.format(band_to_process,
@@ -209,7 +206,7 @@ def main():
 
             gdal.Translate(translated_tif,
                            local_vrt, 
-                          bandList=[index+1])
+                           bandList=[index+1])
 
             ds = gdal.Open(translated_tif,  gdal.OF_UPDATE)
             ds.GetRasterBand(1).SetDescription(desc)
