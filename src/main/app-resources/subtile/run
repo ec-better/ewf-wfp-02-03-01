@@ -96,6 +96,8 @@ def main():
         
         mask_stack = np.stack(sub_tile['SCL_mask'])
         
+        print 'mask_stack.shape = {}'.format(mask_stack.shape)
+        
         result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
         
         print 'result.shape = {}'.format(result.shape)
@@ -206,7 +208,6 @@ def main():
             
             metadata = dict()
             metadata['date'] = date
-            metadata['band_is_interpolated'] = 'False'
 
             ds.GetRasterBand(index + 1).WriteArray(mask_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription('SCL on {}'.format(dates[index]))

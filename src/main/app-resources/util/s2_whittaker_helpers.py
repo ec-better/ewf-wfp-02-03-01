@@ -138,6 +138,9 @@ def analyse_merge_row(row, band_to_process):
     
     elif 'lag1_{}'.format(band_to_process) in row.enclosure:
         output_type = 'lag1'
+    
+    elif 'mask_{}'.format(band_to_process) in row.enclosure:
+        output_type = 'mask'
         
     else: 
         output_type = band_to_process
