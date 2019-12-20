@@ -10,7 +10,7 @@ import osr
 from urlparse import urlparse
 import pandas as pd
 import datetime
-from whittaker import ws2d, ws2doptv, ws2doptvp
+from whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
 from itertools import chain
 import cioppy
 import array
@@ -135,6 +135,12 @@ def analyse_merge_row(row, band_to_process):
     
     elif 'original_{}'.format(band_to_process) in row.enclosure:
         output_type = 'original_{}'.format(band_to_process)
+    
+    elif 'lag1_{}'.format(band_to_process) in row.enclosure:
+        output_type = 'lag1'
+    
+    elif 'mask_{}'.format(band_to_process) in row.enclosure:
+        output_type = 'mask'
         
     else: 
         output_type = band_to_process
@@ -179,7 +185,8 @@ def analyse_subtile(row, parameters, band_to_analyse):
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
 
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
+        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
 
         series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04'])/(series['B08'] + series['B04']), np.nan)
 
@@ -187,7 +194,9 @@ def analyse_subtile(row, parameters, band_to_analyse):
         series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < -1)), np.nan, series['NDVI'])
 
         # remove the no longer needed bands
-        for band in ['B04', 'B08', 'SCL']:
+        #for band in ['B04', 'B08', 'SCL']:
+        #    series.pop(band, None)
+        for band in ['B04', 'B08']:
             series.pop(band, None)
 
     else:
@@ -197,10 +206,14 @@ def analyse_subtile(row, parameters, band_to_analyse):
             
         series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
         
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) | (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
+        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
+        
         series[band_to_analyse] = np.where(series['MASK'], series[band_to_analyse], np.nan)
-        
-        
+    
+    
+    series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
     ds_mem.FlushCache()
 
     return pd.Series(series)
@@ -267,12 +280,11 @@ def whittaker(ts, date_mask):
 
         w = np.ones(len(ts_not_nan), dtype='double')
 
-        lrange = array.array('d', np.linspace(-2, 4, 60))
+        lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
             # apply whittaker filter with V-curve
-            zv, loptv = ws2doptv(ts_not_nan, w, lrange)
-            
+            zv, loptv = ws2doptvp(ts_not_nan, w, lrange, p=0.90)
             #parameters needed for the interpolation step
             dvec = np.zeros(len(date_mask))
             
@@ -289,13 +301,43 @@ def whittaker(ts, date_mask):
             
             # apply whittaker filter with very low smoothing to interpolate
             ndvi_smooth = ws2d(dvec, 0.0001, w)
+            
+            # Calculates Lag-1 correlation
+            #def test_lag1corr(self):
+            #    """Test lag-1 correlation function."""
+            #    self.assertAlmostEqual(lag1corr(self.y[:-1], self.y[1:], -3000.0), self.data['lag1corr'])
+            lag1 = lag1corr(ts[:-1], ts[1:], -999)
 
         except Exception as e:
             loptv = -999
+            lag1 = -999
             print(e)
             print(mask)
 
     else:
         loptv = -999
+        lag1 = -999
         
-    return tuple(np.append(loptv, ndvi_smooth))
+    return tuple(np.append(np.append(loptv,lag1), ndvi_smooth))
+
+def cog(input_tif, output_tif):
+    
+    translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
+                                                                    '-co COPY_SRC_OVERVIEWS=YES ' \
+                                                                    ' -co COMPRESS=LZW'))
+
+    ds = gdal.Open(input_tif, gdal.OF_READONLY)
+
+    gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')
+    ds.BuildOverviews('NEAREST', [2,4,8,16,32])
+    
+    ds = None
+
+    ds = gdal.Open(input_tif)
+    gdal.Translate(output_tif,
+                   ds, 
+                   options=translate_options)
+    ds = None
+
+    os.remove('{}.ovr'.format(input_tif))
+    os.remove(input_tif)
