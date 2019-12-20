@@ -214,7 +214,6 @@ def analyse_subtile(row, parameters, band_to_analyse):
     
     series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
                           (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
-        
     ds_mem.FlushCache()
 
     return pd.Series(series)

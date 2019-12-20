@@ -135,7 +135,7 @@ def main():
      
     ciop = cioppy.Cioppy()
 
-    band_to_process = ciop.getparam('band')
+    band_to_process_orig = ciop.getparam('band')
 
     os.chdir(ciop.tmp_dir)
     
@@ -148,7 +148,7 @@ def main():
     df_references = pd.DataFrame(references)
     df_references.columns = ['enclosure']
     
-    df_references = df_references.merge(df_references.apply(lambda row: analyse_merge_row(row, band_to_process), axis=1), 
+    df_references = df_references.merge(df_references.apply(lambda row: analyse_merge_row(row, band_to_process_orig), axis=1), 
               left_index=True,
               right_index=True)
     
@@ -159,7 +159,7 @@ def main():
 
         print (output_type)
         local_paths = [] 
-
+        band_to_process = band_to_process_orig
 
         for entry, row in df_references[df_references.output_type == output_type].iterrows():
 
@@ -180,10 +180,17 @@ def main():
             desc = src_ds.GetRasterBand(index+1).GetDescription()
             meta = src_ds.GetRasterBand(index+1).GetMetadata()
 
-            if desc == '' or 'SCL' in desc:
+            if desc == 's' or desc == 'lag1':
                 #s or lag1
                 output_name = 'S2_{}_{}'.format(output_type, tile)
                 translated_tif = '{}.tif'.format(output_name)
+                
+            elif 'SCL' in desc:
+                output_name = 'S2_{}_{}_{}'.format(output_type, 
+                                                tile,
+                                                meta['date'])
+                translated_tif = '{}.tif'.format(output_name)
+                
             else:
                 if 'band_is_interpolated' in meta.keys():
                     # interpolated
@@ -213,16 +220,18 @@ def main():
             ds.GetRasterBand(1).SetMetadata(meta)
             ds.FlushCache()
            
-            if desc == '':
+            if desc == 's' or desc == 'lag1':
 
-                title = 'Sentinel-2 tile {} {} s factor'.format(tile, band_to_process)
+                prd_type = desc[:3] if len(desc)>1 else desc
+                
+                title = 'Sentinel-2 tile {} {} {} factor'.format(tile, band_to_process, prd_type)
                 
                 metadata = dict()
 
                 metadata['identifier'] = output_name
                # metadata['startdate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
                # metadata['enddate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
-                metadata['product_type'] = 'S2_s'
+                metadata['product_type'] = 'S2_{}'.format(prd_type)
                 metadata['wkt'] = get_raster_wkt(translated_tif)
 
                 eop_xml = '{}.xml'.format(output_name)
@@ -234,23 +243,35 @@ def main():
                     file.write('title={}\n'.format(title))
                     
             else:
-                prd_type = 'original' if not 'band_is_interpolated' in meta.keys() else 'synthetic' if meta['band_is_interpolated'] == 'True' else 'native'
-
+                
+                if 'SCL' in desc:
+                    prd_type = 'SCL mask'
+                    band_to_process = 'mask'
+                    print desc.split('SCL mask on ')[1]
+                    band_datetime = datetime.datetime.strptime(desc.split('SCL mask on ')[1], '%Y%j').date()
+                else:
+                    prd_type = 'original' if not 'band_is_interpolated' in meta.keys() else 'synthetic' if meta['band_is_interpolated'] == 'True' else 'native'
+                    band_datetime = datetime.datetime.strptime(desc, '%Y%j').date()
+                
                 title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}'.format(tile,
-                                                                              band_to_process,
+                                                                                 band_to_process,
                                                                                  prd_type,
                                                                                  meta['date'], 
-                                                                                 datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%d'))
+                                                                                 band_datetime.strftime('%Y-%m-%d'))
 
                 metadata = dict()
 
                 metadata['identifier'] = output_name
-                metadata['startdate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
-                metadata['enddate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
+                metadata['startdate'] = band_datetime.strftime('%Y-%m-%dT00:00:00Z')
+                metadata['enddate'] = band_datetime.strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, 'ORI' if not 'band_is_interpolated' in meta.keys() else 'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT')
                 metadata['wkt'] = get_raster_wkt(translated_tif)
-
+                
+                if 'SCL' in desc:
+                    metadata['product_type'] = 'S2_{}'.format('_'.join(prd_type.split(' ')))
+                    
                 eop_xml = '{}.xml'.format(output_name)
+                
                 with open(eop_xml, 'wb') as file:
                     file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
                     file.write(create_metadata(metadata))

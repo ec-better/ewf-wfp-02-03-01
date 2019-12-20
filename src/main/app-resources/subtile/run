@@ -122,6 +122,7 @@ def main():
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
+        ds.GetRasterBand(1).SetDescription('s')
         ds.FlushCache()
         
         # Creating the lag1corr GeoTiff
@@ -143,6 +144,7 @@ def main():
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[1], 0, 0)
+        ds.GetRasterBand(1).SetDescription('lag1')
         ds.FlushCache()
         
         ### Creating original values GeoTiff ###
@@ -186,7 +188,7 @@ def main():
         cols = mask_stack.shape[1]
         rows = mask_stack.shape[2]
 
-        ciop.log('DEBUG', ' '.join(['original values', str(band_number), str(cols), str(rows)]))
+        ciop.log('DEBUG', ' '.join(['mask values', str(band_number), str(cols), str(rows)]))
 
         drv = gdal.GetDriverByName('GTiff')
 
@@ -210,7 +212,7 @@ def main():
             metadata['date'] = date
 
             ds.GetRasterBand(index + 1).WriteArray(mask_stack[index], 0, 0)
-            ds.GetRasterBand(index + 1).SetDescription('SCL on {}'.format(dates[index]))
+            ds.GetRasterBand(index + 1).SetDescription('SCL mask on {}'.format(dates[index]))
             ds.GetRasterBand(index + 1).SetMetadata(metadata)
 
         ds.FlushCache()
