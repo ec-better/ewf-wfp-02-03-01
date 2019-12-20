@@ -59,6 +59,10 @@ Log on the Developer Cloud Sandbox and run these commands in a shell:
 ```bash
 git clone <app-url>
 cd <app-name>
+
+conda env create --file=src/main/app-resources/dependencies/python/environment.yml
+conda activate env_ewf_wfp_02_03_01
+
 mvn install
 ```
 

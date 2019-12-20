@@ -43,6 +43,7 @@ def main():
     
     data_pipeline_parameters['username'] = ciop.getparam('_T2Username')
     data_pipeline_parameters['api_key'] = ciop.getparam('_T2ApiKey')
+    
     creds = '{}:{}'.format(data_pipeline_parameters['username'],
                            data_pipeline_parameters['api_key'])
 
@@ -54,7 +55,6 @@ def main():
         ciop.log('INFO', 'Adding {}'.format(input.rstrip()))       
         references.append(input.rstrip())
 
-    
     data_pipeline_results = pd.DataFrame()
 
     fields = 'title,identifier,self,enclosure,cat,cc,wkt,updated,startdate'
@@ -70,9 +70,9 @@ def main():
 
         data_pipeline_results = data_pipeline_results.append(temp_df, ignore_index=True)
         
-    data_pipeline_results = data_pipeline_results.merge(data_pipeline_results.apply(lambda row: analyse_row(row), axis=1), 
-              left_index=True,
-              right_index=True)
+    data_pipeline_results = data_pipeline_results.merge(data_pipeline_results.apply(lambda row: analyse_row(row), axis=1),
+                                                        left_index=True,
+                                                        right_index=True)
     
     src_ds = gdal.Open(get_vsi_url(data_pipeline_results.iloc[0]['enclosure'], 
                                    data_pipeline_parameters['username'], 
@@ -92,7 +92,7 @@ def main():
         print index, src_ds.GetRasterBand(index).GetDescription()
         bands[src_ds.GetRasterBand(index).GetDescription()] = index 
 
-    tiling_factor = 20
+    tiling_factor = 10
     step = pixels / tiling_factor
     
     sub_tiles = get_sub_tiles(data_pipeline_results, data_pipeline_parameters, tiling_factor)
@@ -102,11 +102,11 @@ def main():
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
                                                                                                                   '{}.pickle'.format(sub_tile)), 
                                                                                                      'gzip')
-        #if index >= 2: continue
+        #Testing condition to reduce tiles
+        if index >= 2: continue
         
         ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
-        ciop.publish(os.path.join(ciop.tmp_dir, 
-                                  '{}.pickle'.format(sub_tile)))
+        ciop.publish(os.path.join(ciop.tmp_dir, '{}.pickle'.format(sub_tile)))
 
 try:
     main()
