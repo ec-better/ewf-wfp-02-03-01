@@ -7,7 +7,7 @@
   <name>ewf-wfp-02-03-01</name>
   <parent>
     <groupId>com.terradue</groupId>
-    <artifactId>ewf-python-parent</artifactId>
+    <artifactId>dcs-python-parent</artifactId>
     <version>3.0.1-docker</version>
   </parent>
   <description>This is a short description</description>
