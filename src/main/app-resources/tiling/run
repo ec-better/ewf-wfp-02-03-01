@@ -65,7 +65,8 @@ def main():
         temp_df = pd.DataFrame.from_dict(ciop.search(end_point=end_point,
                                                      params=search_result_params,
                                                      output_fields=fields, 
-                                                     model='EOP', 
+                                                     model='EOP',
+                                                     timeout='60000',
                                                      creds=creds))
 
         data_pipeline_results = data_pipeline_results.append(temp_df, ignore_index=True)
@@ -81,8 +82,6 @@ def main():
     if src_ds is None:
         raise(ValueError)
 
-    pixels = src_ds.RasterXSize
-
     bands = dict()
 
     for index in range(src_ds.RasterCount):
@@ -93,17 +92,19 @@ def main():
         bands[src_ds.GetRasterBand(index).GetDescription()] = index 
 
     tiling_factor = 10
-    step = pixels / tiling_factor
     
     sub_tiles = get_sub_tiles(data_pipeline_results, data_pipeline_parameters, tiling_factor)
+    ciop.log('INFO', 'Number of subtiles: {}'.format(len(sub_tiles)))
     
     for index, sub_tile in enumerate(sub_tiles.sub_tile.unique()):
+        
+        print index,sub_tile
     
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
                                                                                                                   '{}.pickle'.format(sub_tile)), 
                                                                                                      'gzip')
         #Testing condition to reduce tiles
-        if index >= 2: continue
+        #if index >= 4: continue
         
         ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
         ciop.publish(os.path.join(ciop.tmp_dir, '{}.pickle'.format(sub_tile)))
