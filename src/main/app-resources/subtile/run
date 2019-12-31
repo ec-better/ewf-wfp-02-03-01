@@ -175,6 +175,7 @@ def main():
             
             metadata = dict()
             metadata['date'] = date
+            metadata['jdate'] = dates[index]
 
             ds.GetRasterBand(index + 1).WriteArray(data_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription(dates[index])
@@ -210,6 +211,7 @@ def main():
             
             metadata = dict()
             metadata['date'] = date
+            metadata['jdate'] = dates[index]
 
             ds.GetRasterBand(index + 1).WriteArray(mask_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription('SCL mask on {}'.format(dates[index]))
@@ -248,6 +250,7 @@ def main():
 
             metadata = dict()
             metadata['date'] = date
+            metadata['jdate'] = full_dates[index]
             metadata['band_is_interpolated'] = band_is_interpolated
 
             #ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)

@@ -156,7 +156,7 @@ def main():
     tile = df_references.tile.unique()[0]
     
     for output_type in df_references.output_type.unique():
-
+        
         print (output_type)
         local_paths = [] 
         band_to_process = band_to_process_orig
@@ -256,7 +256,7 @@ def main():
                 title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}'.format(tile,
                                                                                  band_to_process,
                                                                                  prd_type,
-                                                                                 meta['date'], 
+                                                                                 meta['jdate'], 
                                                                                  band_datetime.strftime('%Y-%m-%d'))
 
                 metadata = dict()
