@@ -38,7 +38,7 @@
             
         </defaultParameters>
       <defaultJobconf>
-          <property id="mapred.task.timeout">28800000</property> <!-- 8 hours -->
+          <property id="mapred.task.timeout">43200000</property> <!-- 12 hours -->
       </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="merge">
@@ -65,7 +65,7 @@
               </defaultParameters>
       <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
-        <property id="mapred.task.timeout">28800000</property> <!-- 8 hours -->
+        <property id="mapred.task.timeout">86400000</property> <!-- 24 hours -->
       </defaultJobconf>
     </jobTemplate>
   </jobTemplates>
