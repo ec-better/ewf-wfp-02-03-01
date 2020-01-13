@@ -86,7 +86,7 @@ def main():
         dates = sub_tile['jday']
         
         # the generate_dates function creates a list of days with a delta time=5
-        full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=5)
+        full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=1)
         
         # the date_mask array is False when there is no product associated to that date.
         # this is needed by the whittaker function in the interpolation step.
