@@ -104,7 +104,7 @@ def main():
                                                                                                                   '{}.pickle'.format(sub_tile)), 
                                                                                                      'gzip')
         #Testing condition to reduce tiles
-        #if index >= 4: continue
+        #if index >= 2: continue
         
         ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
         ciop.publish(os.path.join(ciop.tmp_dir, '{}.pickle'.format(sub_tile)))
