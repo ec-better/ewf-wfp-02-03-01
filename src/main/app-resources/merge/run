@@ -179,7 +179,9 @@ def main():
 
             desc = src_ds.GetRasterBand(index+1).GetDescription()
             meta = src_ds.GetRasterBand(index+1).GetMetadata()
-
+            ciop.log('INFO', 'Saving {} band on {}'.format(output_type,desc))
+            ciop.log('DEBUG', 'metadata {}'.format(meta))
+            
             if desc == 's' or desc == 'lag1':
                 #s or lag1
                 output_name = 'S2_{}_{}'.format(output_type, tile)
