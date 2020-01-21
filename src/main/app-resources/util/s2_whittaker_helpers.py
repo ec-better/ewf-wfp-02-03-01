@@ -324,8 +324,8 @@ def cog(input_tif, output_tif):
     
     translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
                                                                     '-co COPY_SRC_OVERVIEWS=YES ' \
-                                                                    '-co COMPRESS=LZW '\
-                                                                    '-a_nodata -999'))
+                                                                    '-co COMPRESS=LZW '))
+    
 
     ds = gdal.Open(input_tif, gdal.OF_READONLY)
 
