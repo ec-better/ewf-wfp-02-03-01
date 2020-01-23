@@ -184,7 +184,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
         
         for band in ['B04', 'B08']:
             # read the data
-            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float64)
+            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
         # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
         ndvi = lambda x,y,z: np.nan if(x+y)==0 or z==False  else (x-y)/float(x+y)
