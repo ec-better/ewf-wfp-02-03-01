@@ -178,20 +178,22 @@ def analyse_subtile(row, parameters, band_to_analyse):
     # get the geocoding for the sub-tile
     series['geo_transform'] = [ds_mem.GetGeoTransform()]
     series['projection'] = ds_mem.GetProjection()
-
+    series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
+                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
     if band_to_analyse == 'NDVI':
         
         for band in ['B04', 'B08', 'SCL']:
             # read the data
-            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
+            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float64)
 
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
-                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11)) & (series['B08'] + series['B04'] != 0)
+        # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
+        ndvi = lambda x,y,z: np.nan if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        vfunc = np.vectorize(ndvi, otypes=[np.float])
+        series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
-        series['NDVI'] = np.where(series['MASK'], (series['B08'] - series['B04'])/(series['B08'] + series['B04']), np.nan)
+        
 
-        ### Added to delete non-interpretable data of the NDVI. Check the source to understand the problem.
-        series['NDVI'] = np.where(((series['NDVI'] > 1) | (series['NDVI'] < -1)), np.nan, series['NDVI'])
+
 
         # remove the no longer needed bands
         #for band in ['B04', 'B08', 'SCL']:
@@ -205,15 +207,11 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
             
         series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
+
         
-        series['MASK'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
-                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
-        
-        series[band_to_analyse] = np.where(series['MASK'], series[band_to_analyse], np.nan)
+        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], np.nan)
     
-    
-    series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
-                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
+
     ds_mem.FlushCache()
 
     return pd.Series(series)
