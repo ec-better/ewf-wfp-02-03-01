@@ -178,11 +178,11 @@ def analyse_subtile(row, parameters, band_to_analyse):
     # get the geocoding for the sub-tile
     series['geo_transform'] = [ds_mem.GetGeoTransform()]
     series['projection'] = ds_mem.GetProjection()
-    series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |
-                          (series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
+    series['SCL']= np.array(ds_mem.GetRasterBand(bands['SCL']).ReadAsArray())
+    series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |(series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
     if band_to_analyse == 'NDVI':
         
-        for band in ['B04', 'B08', 'SCL']:
+        for band in ['B04', 'B08']:
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float64)
 
@@ -202,7 +202,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series.pop(band, None)
 
     else:
-        for band in [band_to_analyse, 'SCL']:
+        for band in [band_to_analyse]:
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
             
