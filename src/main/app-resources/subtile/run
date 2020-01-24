@@ -13,6 +13,7 @@ import atexit
 import pandas as pd
 import cioppy
 import datetime
+
 ciop = cioppy.Cioppy()
     
 # define the exit codes
@@ -267,13 +268,13 @@ def main():
 
         ds.FlushCache()
         
-        for result in ['s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
-                       'lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
-                       '{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
-                       'original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
-                       'mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile))]:
+        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), -999),
+                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-999),
+                                   ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
+                                   ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
+                                   ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).iteritems():
             
-            cog('temp_{}'.format(result),result)
+            cog('temp_{}'.format(result),result,nodata)
         
             ciop.log('INFO', 'Publish {}'.format(result))
             ciop.publish(os.path.join(ciop.tmp_dir, result))
