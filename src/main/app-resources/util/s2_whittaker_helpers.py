@@ -304,7 +304,8 @@ def whittaker(ts, date_mask):
             #def test_lag1corr(self):
             #    """Test lag-1 correlation function."""
             #    self.assertAlmostEqual(lag1corr(self.y[:-1], self.y[1:], -3000.0), self.data['lag1corr'])
-            lag1 = lag1corr(ndvi_smooth[:-1], ndvi_smooth[1:], -999)
+            lag1 = lag1corr(ts[:-1], ts[1:], -999)
+
 
         except Exception as e:
             loptv = -999
@@ -318,13 +319,17 @@ def whittaker(ts, date_mask):
         
     return tuple(np.append(np.append(loptv,lag1), ndvi_smooth))
 
-def cog(input_tif, output_tif):
+def cog(input_tif, output_tif,no_data=None):
     
     translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
                                                                     '-co COPY_SRC_OVERVIEWS=YES ' \
                                                                     '-co COMPRESS=LZW '))
     
-
+    if no_data != None:
+        translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
+                                                                        '-co COPY_SRC_OVERVIEWS=YES ' \
+                                                                        '-co COMPRESS=LZW '\
+                                                                        '-a_nodata -999'))
     ds = gdal.Open(input_tif, gdal.OF_READONLY)
 
     gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')
