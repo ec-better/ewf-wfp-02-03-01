@@ -66,7 +66,7 @@ def main():
 
         sub_tile = pd.read_pickle(local_subtile, 'gzip')
         
-        ciop.log('INFO', 'Getting the arrays for local tile {}'.format(local_subtile))
+        
 
         sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters, band_to_process), axis=1),
                                   left_index=True,
@@ -85,10 +85,7 @@ def main():
         
         ciop.log('INFO', 'Smoothing local tile {}'.format(local_subtile))
         dates = sub_tile['jday']
-        
-        # PP 
-        ciop.log('INFO', 'PP added these debugging lines :-D')
-        ciop.log('INFO', 'sub_tile_jday_is: {}'.format(dates))
+
         
         
         # the generate_dates function creates a list of days with a delta time=5
@@ -175,8 +172,7 @@ def main():
         ds = gdal.Open('temp_original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
         for index, band in enumerate(range(0, band_number)):
-            ciop.log('INFO', 'PP added these debugging lines :-D')
-            ciop.log('INFO', 'date_index{}_is: {}'.format(index,dates[index]))
+
             
             product_date = datetime.datetime.strptime(dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
