@@ -305,7 +305,7 @@ def whittaker(ts, date_mask):
             #    """Test lag-1 correlation function."""
             #    self.assertAlmostEqual(lag1corr(self.y[:-1], self.y[1:], -3000.0), self.data['lag1corr'])
             #lag1 = lag1corr(ts[:-1], ts[1:], -999)
-            lag1 = lag1corr(ndvi_smooth[:-1], ndvi_smooth[1:], -999)
+            lag1 = lag1corr(ts_not_nan[:-1], ts_not_nan[1:], -999)
             #lag1 = lag1corr(zv[:-1], zv[1:], -999)
             
 
