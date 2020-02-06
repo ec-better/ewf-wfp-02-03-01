@@ -130,7 +130,7 @@ dependencies:
   - traitlets=4.3.2=py27_0
   - wcwidth=0.1.7=py27_0
   - wheel=0.33.4=py27_0
-  - whittaker=1.0.1=py27hd16cb04_2
+  - whittaker=2.0.1=py27hdca2ae4_0
   - xerces-c=3.2.2=h780794e_0
   - xz=5.2.4=h14c3975_4
   - zeromq=4.3.1=he6710b0_3
