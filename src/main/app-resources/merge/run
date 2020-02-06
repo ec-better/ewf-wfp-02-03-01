@@ -173,7 +173,11 @@ def main():
         ds.FlushCache()
 
         src_ds = gdal.Open(local_paths[0])
-
+        #Check if gdal has correctly accessed the index
+        if not src_ds:
+            ciop.log('ERROR', 'Opening {} returned null pointer'.format(local_paths[0]))
+            raise
+        
         # save individual bands
         for index in range(src_ds.RasterCount):
 
