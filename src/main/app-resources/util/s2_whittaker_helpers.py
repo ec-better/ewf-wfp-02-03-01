@@ -187,7 +187,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
         # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: np.nan if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        ndvi = lambda x,y,z: -999 if(x+y)==0 or z==False  else (x-y)/float(x+y)
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -252,6 +252,8 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
     return datelist
 
+
+
 def whittaker(ts, date_mask):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
@@ -263,49 +265,44 @@ def whittaker(ts, date_mask):
     Returns:
         list of floating values. The first value is the s smoothing parameter
     """
-    
-    #  mask is True when the value is np.nan
-    mask = np.isnan(ts)
-    
+    mask = np.ones(len(ts))
+    mask[ts==-999]=0
     # the output is an  array full of np.nan by default
-    ndvi_smooth = np.array([np.nan]*len(date_mask))
+    ndvi_smooth = np.array([-999]*len(date_mask))
     
     # check if all values are np.npn
     if not mask.all():
         
         # parameters needed for the first smoothing without interpolation
-        ts_not_nan = ts[~mask]
+        #ts_not_nan = ts[~mask]
 
-        w = np.ones(len(ts_not_nan), dtype='double')
+        w=np.array((ts!=-999)*1,dtype='double')
 
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
             # apply whittaker filter with V-curve
-            zv, loptv = ws2doptvp(ts_not_nan, w, lrange, p=0.90)
+            zv, loptv = ws2doptvp(ts, w, lrange, p=0.90)
             #parameters needed for the interpolation step
+           
             dvec = np.zeros(len(date_mask))
+            w_d=np.ones(len(date_mask), dtype='double')
             
-            w = np.ones(len(ts), dtype='double')
-            
-            w[mask] = 0
+            #w[mask] = 0
             
             # adding new dates with no associated product to the weights
             for idx, el in enumerate(date_mask):
                 if not el:
-                    w = np.insert(w, idx, 0)
+                    w_d[idx]= 0
 
-            dvec[w==1] = zv
+            dvec[w_d==1]= zv
             
             # apply whittaker filter with very low smoothing to interpolate
-            ndvi_smooth = ws2d(dvec, 0.0001, w)
+            ndvi_smooth = ws2d(dvec, 0.0001, w_d)
             
             # Calculates Lag-1 correlation
-            #def test_lag1corr(self):
-            #    """Test lag-1 correlation function."""
-            #    self.assertAlmostEqual(lag1corr(self.y[:-1], self.y[1:], -3000.0), self.data['lag1corr'])
-            #lag1 = lag1corr(ts[:-1], ts[1:], -999)
-            lag1 = lag1corr(ts_not_nan[:-1], ts_not_nan[1:], -999)
+            
+            lag1 = lag1corr(ts[:-1], ts[1:], -999)
             #lag1 = lag1corr(zv[:-1], zv[1:], -999)
             
 
@@ -321,6 +318,7 @@ def whittaker(ts, date_mask):
         lag1 = -999
         
     return tuple(np.append(np.append(loptv,lag1), ndvi_smooth))
+
 
 def cog(input_tif, output_tif,no_data=None):
     
