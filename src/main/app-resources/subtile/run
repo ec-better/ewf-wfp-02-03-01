@@ -43,6 +43,7 @@ def main():
     os.chdir(ciop.tmp_dir)
     
     band_to_process = ciop.getparam('band')
+    delta_day = ciop.getparam('delta_time_output')
 
     data_pipeline_parameters = dict()    
     
@@ -246,7 +247,8 @@ def main():
         
         ds = gdal.Open('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
-        for index, band in enumerate(range(0, band_number)):
+        
+        for index in range(0, band_number, delta_day):
         
             product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
