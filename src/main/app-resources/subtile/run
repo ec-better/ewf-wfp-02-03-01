@@ -43,7 +43,7 @@ def main():
     os.chdir(ciop.tmp_dir)
     
     band_to_process = ciop.getparam('band')
-    delta_day = ciop.getparam('delta_time_output')
+    delta_day = int(ciop.getparam('delta_time_output'))
 
     data_pipeline_parameters = dict()    
     
