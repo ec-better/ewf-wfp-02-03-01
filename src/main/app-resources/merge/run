@@ -173,7 +173,9 @@ def main():
         ds.FlushCache()
         gdal.UseExceptions()
         src_ds = gdal.Open(local_paths[0])
-
+        if not src_ds:
+            ciop.log('DEBUG', 'The local path to {} is void.'.format(local_paths[0]))
+            
         
         # save individual bands
         for index in range(src_ds.RasterCount):
