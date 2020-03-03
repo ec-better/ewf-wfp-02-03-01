@@ -247,9 +247,9 @@ def main():
         
         ds = gdal.Open('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
-        
+        delta_day_index=0
         for index in range(0, band_number, delta_day):
-        
+            
             product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
             band_is_interpolated = 'False' if full_dates[index] in list(dates) else 'True'
@@ -258,16 +258,16 @@ def main():
             metadata['date'] = date
             metadata['jdate'] = full_dates[index]
             metadata['band_is_interpolated'] = band_is_interpolated
-
+            delta_day_index+=1
             #ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)
-            ds.GetRasterBand(index + 1).WriteArray(result[index + 2], 0, 0)
-            ds.GetRasterBand(index + 1).SetDescription(full_dates[index])
-            ds.GetRasterBand(index + 1).SetMetadata(metadata)
+            ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
+            ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
+            ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
 
         ds.FlushCache()
         
-        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), -999),
-                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-999),
+        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 3000),
+                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),3000),
                                    ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
                                    ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
                                    ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).iteritems():
