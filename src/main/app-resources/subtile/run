@@ -224,11 +224,12 @@ def main():
 
         ds.FlushCache()
         
-        
         ### Creating GeoTiff ###
         ciop.log('INFO', 'Create the {} GeoTIFF product for local tile {}'.format(band_to_process, local_subtile))
-        #band_number = result.shape[0] - 1
-        band_number = result.shape[0] - 2
+        
+        out_bands = range(0, result.shape[0]-2, delta_day)
+        
+        band_number = len(out_bands)
         cols = result.shape[1]
         rows = result.shape[2]
 
@@ -248,7 +249,12 @@ def main():
         ds = gdal.Open('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
         delta_day_index=0
-        for index in range(0, band_number, delta_day):
+        
+        for index in out_bands:
+            
+            ciop.log('DEBUG', '{} initial number of bands: {}'.format(band_to_process,ds.RasterCount))
+            
+            ciop.log('DEBUG', 'index : {}'.format(index))
             
             product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
@@ -258,12 +264,16 @@ def main():
             metadata['date'] = date
             metadata['jdate'] = full_dates[index]
             metadata['band_is_interpolated'] = band_is_interpolated
-            delta_day_index+=1
-            #ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)
+            delta_day_index += 1
+            
+            ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
+            
             ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
             ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
             ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
-
+        
+        ciop.log('DEBUG', '{} number of bands: {}'.format(band_to_process,ds.RasterCount))
+        
         ds.FlushCache()
         
         for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 3000),
