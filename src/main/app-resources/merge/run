@@ -178,6 +178,8 @@ def main():
             
         
         # save individual bands
+        ciop.log('DEBUG', 'number of bands {}'.format(src_ds.RasterCount))
+        
         for index in range(src_ds.RasterCount):
 
             desc = src_ds.GetRasterBand(index+1).GetDescription()
