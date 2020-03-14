@@ -187,7 +187,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
         # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: 3000 if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (x-y)/float(x+y)
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -209,7 +209,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
         series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
 
         
-        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], np.nan)
+        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], -3000)
     
 
     ds_mem.FlushCache()
@@ -266,9 +266,9 @@ def whittaker(ts, date_mask):
         list of floating values. The first value is the s smoothing parameter
     """
     mask = np.ones(len(ts))
-    mask[ts==3000]=0
+    mask[ts==-3000]=0
     # the output is an  array full of np.nan by default
-    ndvi_smooth = np.array([3000]*len(date_mask))
+    ndvi_smooth = np.array([-3000]*len(date_mask))
     
     # check if all values are np.npn
     if not mask.all():
@@ -276,7 +276,7 @@ def whittaker(ts, date_mask):
         # parameters needed for the first smoothing without interpolation
         #ts_not_nan = ts[~mask]
 
-        w=np.array((ts!=3000)*1,dtype='double')
+        w=np.array((ts!=-3000)*1,dtype='double')
 
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
@@ -302,22 +302,22 @@ def whittaker(ts, date_mask):
             
             # Calculates Lag-1 correlation
             
-            lag1 = lag1corr(ts[:-1], ts[1:], 3000)
-            #lag1 = lag1corr(zv[:-1], zv[1:], -999)
+            lag1 = lag1corr(ts[:-1], ts[1:], -3000)
+            
             
 
 
         except Exception as e:
-            loptv = -999
-            lag1 = -999
+            loptv = -3000
+            lag1 = -3000
             print(e)
             print(mask)
 
     else:
-        loptv = 3000
-        lag1 = 3000
+        loptv = -3000
+        lag1 = -3000
         
-    return tuple(np.append(np.append(loptv,lag1), ndvi_smooth))
+    return tuple(np.append(np.append(np.log10(loptv),lag1), np.array(np.array(ndvi_smooth)*10000,dtype='int16')))
 
 
 def cog(input_tif, output_tif,no_data=None):
@@ -330,7 +330,7 @@ def cog(input_tif, output_tif,no_data=None):
         translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
                                                                         '-co COPY_SRC_OVERVIEWS=YES ' \
                                                                         '-co COMPRESS=LZW '\
-                                                                        '-a_nodata 3000'))
+                                                                        '-a_nodata -3000'))
     ds = gdal.Open(input_tif, gdal.OF_READONLY)
 
     gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')
