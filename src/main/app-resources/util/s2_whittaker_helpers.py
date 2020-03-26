@@ -314,7 +314,7 @@ def whittaker(ts, date_mask):
         loptv = 0
         lag1 = -3000
         
-    return tuple(np.append(np.append(np.where(loptv>0,np.log10(loptv),0),lag1), ndvi_smooth))
+    return tuple(np.append(np.append(np.where(loptv>0,10000*np.log10(loptv),0),10000*lag1), ndvi_smooth))
 
 
 def cog(input_tif, output_tif,no_data=None):
