@@ -187,7 +187,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
         # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else 10000*((x-y)/float(x+y))
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -257,11 +257,9 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 def whittaker(ts, date_mask):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
-
     Args:
         ts: array of floating values
         date_mask: full list of julian dates as string YYYYJJJ
-
     Returns:
         list of floating values. The first value is the s smoothing parameter
     """
@@ -277,7 +275,6 @@ def whittaker(ts, date_mask):
         #ts_not_nan = ts[~mask]
 
         w=np.array((ts!=-3000)*1,dtype='double')
-
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
@@ -308,16 +305,16 @@ def whittaker(ts, date_mask):
 
 
         except Exception as e:
-            loptv = -3000
+            loptv = 0
             lag1 = -3000
             print(e)
             print(mask)
 
     else:
-        loptv = -3000
+        loptv = 0
         lag1 = -3000
         
-    return tuple(np.append(np.append(np.log10(loptv),lag1), np.array(np.array(ndvi_smooth)*10000,dtype='int16')))
+    return tuple(np.append(np.append(np.where(loptv>0,10000*np.log10(loptv),0),10000*lag1), ndvi_smooth))
 
 
 def cog(input_tif, output_tif,no_data=None):

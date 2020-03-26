@@ -121,7 +121,7 @@ def main():
         ds = drv.Create('temp_s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -143,7 +143,7 @@ def main():
         ds = drv.Create('temp_lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -164,7 +164,7 @@ def main():
         ds = drv.Create('temp_original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -201,7 +201,7 @@ def main():
         ds = drv.Create('temp_mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -240,7 +240,7 @@ def main():
         ds = drv.Create('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -276,7 +276,7 @@ def main():
         
         ds.FlushCache()
         
-        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), -3000),
+        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 0),
                                    ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-3000),
                                    ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
                                    ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
