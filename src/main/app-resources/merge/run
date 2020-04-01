@@ -133,7 +133,7 @@ def create_metadata(metadata):
     identifier.text = metadata['identifier'] 
     product_type.text = metadata['product_type'] 
     localAttribute.text = 'Band'
-    localValue = metadata['vendor_attrib_value']
+    localValue.text = metadata['vendor_attrib_value']
     
     return etree.tostring(root, pretty_print=True)
 
