@@ -187,7 +187,7 @@ def analyse_subtile(row, parameters, band_to_analyse):
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
         # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else 10000*((x-y)/float(x+y))
+        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (x-y)/float(x+y)
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -314,8 +314,8 @@ def whittaker(ts, date_mask):
         loptv = 0
         lag1 = -3000
         
-    return tuple(np.append(np.append(np.where(loptv>0,10000*np.log10(loptv),0),10000*lag1), ndvi_smooth))
-
+    
+    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1), np.multiply(ndvi_smooth,10000)))
 
 def cog(input_tif, output_tif,no_data=None):
     

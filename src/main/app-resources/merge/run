@@ -110,6 +110,10 @@ def create_metadata(metadata):
     earth_observation_metadata = etree.SubElement(metadata_property, '{{{}}}EarthObservationMetaData'.format(namespaces['eop']))
     identifier = etree.SubElement(earth_observation_metadata, '{{{}}}identifier'.format(namespaces['eop']))
     product_type = etree.SubElement(earth_observation_metadata, '{{{}}}productType'.format(namespaces['eop']))
+    vendorSpecific = etree.SubElement(earth_observation_metadata, '{{{}}}vendorSpecific'.format(namespaces['eop']))
+    SpecificInformation = etree.SubElement(vendorSpecific, '{{{}}}SpecificInformation'.format(namespaces['eop']))
+    localAttribute = etree.SubElement(SpecificInformation, '{{{}}}localAttribute'.format(namespaces['eop']))
+    localValue = etree.SubElement(SpecificInformation, '{{{}}}localValue'.format(namespaces['eop']))
     
     if 'startdate' in metadata.keys():
         begin_position.text = metadata['startdate']
@@ -128,6 +132,8 @@ def create_metadata(metadata):
     
     identifier.text = metadata['identifier'] 
     product_type.text = metadata['product_type'] 
+    localAttribute.text = 'Band'
+    localValue = metadata['vendor_attrib_value']
     
     return etree.tostring(root, pretty_print=True)
 
@@ -239,7 +245,8 @@ def main():
                # metadata['startdate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
                # metadata['enddate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}'.format(prd_type)
-                metadata['wkt'] = get_raster_wkt(translated_tif)
+                metadata['wkt'] = get_raster_wkt(translated_tif) 
+                metadata['vendor_attrib_value'] = band_to_process_orig
 
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
@@ -273,7 +280,7 @@ def main():
                 metadata['enddate'] = band_datetime.strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, 'ORI' if not 'band_is_interpolated' in meta.keys() else 'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT')
                 metadata['wkt'] = get_raster_wkt(translated_tif)
-                
+                metadata['vendor_attrib_value'] = band_to_process_orig
                 if 'SCL' in desc:
                     metadata['product_type'] = 'S2_{}'.format('_'.join(prd_type.split(' ')))
                     
