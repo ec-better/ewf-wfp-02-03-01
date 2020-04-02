@@ -91,6 +91,8 @@ def main():
         
         # the generate_dates function creates a list of days with a delta time=5
         full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=1)
+        # Parameter to be set in metadata 
+        full_period = '{}_{}'.format(fromjulian(full_dates[0]).strftime('%Y%m%d'),fromjulian(full_dates[-1]).strftime('%Y%m%d'))
         
         # the date_mask array is False when there is no product associated to that date.
         # this is needed by the whittaker function in the interpolation step.
@@ -127,6 +129,11 @@ def main():
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
         ds.GetRasterBand(1).SetDescription('s')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
+        
         ds.FlushCache()
         
         # Creating the lag1corr GeoTiff
@@ -149,6 +156,10 @@ def main():
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[1], 0, 0)
         ds.GetRasterBand(1).SetDescription('lag1')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
         ds.FlushCache()
         
         ### Creating original values GeoTiff ###
@@ -181,6 +192,7 @@ def main():
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = dates[index]
+            metadata['full_period'] = full_period
 
             ds.GetRasterBand(index + 1).WriteArray(data_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription(dates[index])
@@ -217,6 +229,7 @@ def main():
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = dates[index]
+            metadata['full_period'] = full_period
 
             ds.GetRasterBand(index + 1).WriteArray(mask_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription('SCL mask on {}'.format(dates[index]))
@@ -259,11 +272,13 @@ def main():
             product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
             band_is_interpolated = 'False' if full_dates[index] in list(dates) else 'True'
+            
 
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = full_dates[index]
             metadata['band_is_interpolated'] = band_is_interpolated
+            metadata['full_period'] = full_period
             delta_day_index += 1
             
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
