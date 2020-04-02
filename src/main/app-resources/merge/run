@@ -110,6 +110,11 @@ def create_metadata(metadata):
     earth_observation_metadata = etree.SubElement(metadata_property, '{{{}}}EarthObservationMetaData'.format(namespaces['eop']))
     identifier = etree.SubElement(earth_observation_metadata, '{{{}}}identifier'.format(namespaces['eop']))
     product_type = etree.SubElement(earth_observation_metadata, '{{{}}}productType'.format(namespaces['eop']))
+    vendorSpecific = etree.SubElement(earth_observation_metadata, '{{{}}}vendorSpecific'.format(namespaces['eop']))
+    SpecificInformation = etree.SubElement(vendorSpecific, '{{{}}}SpecificInformation'.format(namespaces['eop']))
+    localAttribute = etree.SubElement(SpecificInformation, '{{{}}}localAttribute'.format(namespaces['eop']))
+    localValue = etree.SubElement(SpecificInformation, '{{{}}}localValue'.format(namespaces['eop']))
+
     
     if 'startdate' in metadata.keys():
         begin_position.text = metadata['startdate']
@@ -128,6 +133,9 @@ def create_metadata(metadata):
     
     identifier.text = metadata['identifier'] 
     product_type.text = metadata['product_type'] 
+    localAttribute.text = 'Band'
+    localValue.text = metadata['vendor_attrib_value']
+
     
     return etree.tostring(root, pretty_print=True)
 
@@ -189,13 +197,14 @@ def main():
             
             if desc == 's' or desc == 'lag1':
                 #s or lag1
-                output_name = 'S2_{}_{}'.format(output_type, tile)
+                output_name = 'S2_{}_{}_{}'.format(output_type, tile, meta['full_period'])
                 translated_tif = '{}.tif'.format(output_name)
                 
             elif 'SCL' in desc:
-                output_name = 'S2_{}_{}_{}'.format(output_type, 
+                output_name = 'S2_{}_{}_{}_{}'.format(output_type, 
                                                 tile,
-                                                meta['date'])
+                                                meta['date'],
+                                                meta['full_period'])
                 translated_tif = '{}.tif'.format(output_name)
                 
             else:
@@ -204,8 +213,8 @@ def main():
                     output_name = 'S2_{}_{}_{}_{}_{}'.format(band_to_process,
                                                              'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT',
                                                              tile,
-                                                             desc,
-                                                             meta['date'])
+                                                             meta['date'],
+                                                             meta['full_period'])
 
                     translated_tif = '{}.tif'.format(output_name)
                 else:
@@ -213,8 +222,8 @@ def main():
                     output_name = 'S2_{}_{}_{}_{}_{}'.format(band_to_process,
                                                              'ORI',
                                                              tile,
-                                                             desc,
-                                                             meta['date'])
+                                                             meta['date'],
+                                                             meta['full_period'])
 
                     translated_tif = '{}.tif'.format(output_name)
 
@@ -239,7 +248,8 @@ def main():
                # metadata['startdate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
                # metadata['enddate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}'.format(prd_type)
-                metadata['wkt'] = get_raster_wkt(translated_tif)
+                metadata['wkt'] = get_raster_wkt(translated_tif) 
+                metadata['vendor_attrib_value'] = band_to_process_orig
 
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
@@ -260,11 +270,12 @@ def main():
                     prd_type = 'original' if not 'band_is_interpolated' in meta.keys() else 'synthetic' if meta['band_is_interpolated'] == 'True' else 'native'
                     band_datetime = datetime.datetime.strptime(desc, '%Y%j').date()
                 
-                title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}'.format(tile,
+                title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}, full period {}'.format(tile,
                                                                                  band_to_process,
                                                                                  prd_type,
                                                                                  meta['jdate'], 
-                                                                                 band_datetime.strftime('%Y-%m-%d'))
+                                                                                 band_datetime.strftime('%Y-%m-%d'),
+                                                                                 meta['full_period'])
 
                 metadata = dict()
 
@@ -273,7 +284,7 @@ def main():
                 metadata['enddate'] = band_datetime.strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, 'ORI' if not 'band_is_interpolated' in meta.keys() else 'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT')
                 metadata['wkt'] = get_raster_wkt(translated_tif)
-                
+                metadata['vendor_attrib_value'] = band_to_process_orig
                 if 'SCL' in desc:
                     metadata['product_type'] = 'S2_{}'.format('_'.join(prd_type.split(' ')))
                     
