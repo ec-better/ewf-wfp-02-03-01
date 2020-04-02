@@ -92,7 +92,7 @@ def main():
         # the generate_dates function creates a list of days with a delta time=5
         full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=1)
         # Parameter to be set in metadata 
-        full_period = '{}_{}'format(fromjulian(full_dates[0]),fromjulian(full_dates[-1]))
+        full_period = '{}_{}'.format(fromjulian(full_dates[0]).strftime('%Y%m%d'),fromjulian(full_dates[-1]).strftime('%Y%m%d'))
         
         # the date_mask array is False when there is no product associated to that date.
         # this is needed by the whittaker function in the interpolation step.
@@ -129,6 +129,11 @@ def main():
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
         ds.GetRasterBand(1).SetDescription('s')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
+        
         ds.FlushCache()
         
         # Creating the lag1corr GeoTiff
@@ -151,6 +156,10 @@ def main():
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[1], 0, 0)
         ds.GetRasterBand(1).SetDescription('lag1')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
         ds.FlushCache()
         
         ### Creating original values GeoTiff ###
