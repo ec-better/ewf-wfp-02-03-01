@@ -314,8 +314,9 @@ def whittaker(ts, date_mask):
         loptv = 0
         lag1 = -3000
         
-    
-    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1), np.array(np.array(ndvi_smooth)*10000,dtype='int16')))
+    scale10k=lambda x: x if x==-3000 else 10000*x
+    vfunc_scale=np.vectorize(scale10k,otypes=[np.int16])
+    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1), vfunc_scale(ndvi_smooth)))
 
 def cog(input_tif, output_tif,no_data=None):
     
