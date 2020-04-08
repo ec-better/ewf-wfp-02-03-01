@@ -254,7 +254,7 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
 
 
-def whittaker(ts, date_mask):
+def whittaker(ts, date_mask, band_to_analyse):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
     Args:
@@ -266,7 +266,7 @@ def whittaker(ts, date_mask):
     mask = np.ones(len(ts))
     mask[ts==-3000]=0
     # the output is an  array full of np.nan by default
-    ndvi_smooth = np.array([-3000]*len(date_mask))
+    data_smooth = np.array([-3000]*len(date_mask))
     
     # check if all values are np.npn
     if not mask.all():
@@ -295,7 +295,7 @@ def whittaker(ts, date_mask):
             dvec[w_d==1]= zv
             
             # apply whittaker filter with very low smoothing to interpolate
-            ndvi_smooth = ws2d(dvec, 0.0001, w_d)
+            data_smooth = ws2d(dvec, 0.0001, w_d)
             
             # Calculates Lag-1 correlation
             
@@ -314,8 +314,17 @@ def whittaker(ts, date_mask):
         loptv = 0
         lag1 = -3000
         
-    
-    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1), np.multiply(ndvi_smooth,10000)))
+
+    if band_to_analyse == 'NDVI':
+        scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+        vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+        ndvi_scaled = vfunc_scale(np.frombuffer(data_smooth))
+        smoothed_series = ndvi_scaled
+    else:
+        smoothed_series = data_smooth
+        
+    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),smoothed_series))
+
 
 def cog(input_tif, output_tif,no_data=None):
     

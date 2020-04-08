@@ -104,7 +104,7 @@ def main():
         
         print 'mask_stack.shape = {}'.format(mask_stack.shape)
         
-        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
+        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process)
         
         print 'result.shape = {}'.format(result.shape)
         
@@ -193,8 +193,16 @@ def main():
             metadata['date'] = date
             metadata['jdate'] = dates[index]
             metadata['full_period'] = full_period
-
-            ds.GetRasterBand(index + 1).WriteArray(data_stack[index], 0, 0)
+            
+            #ORIGINAL band 
+            if band_to_process == 'NDVI':
+                scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+                vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+                raster_to_write = vfunc_scale(data_stack[index])
+            else:
+                raster_to_write = data_stack[index]
+            
+            ds.GetRasterBand(index + 1).WriteArray(raster_to_write, 0, 0)
             ds.GetRasterBand(index + 1).SetDescription(dates[index])
             ds.GetRasterBand(index + 1).SetMetadata(metadata)
 
