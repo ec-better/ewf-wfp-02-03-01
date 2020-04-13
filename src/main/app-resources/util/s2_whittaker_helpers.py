@@ -315,15 +315,15 @@ def whittaker(ts, date_mask, band_to_analyse):
         lag1 = -3000
         
 
-    if band_to_analyse == 'NDVI':
-        scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-        vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
-        ndvi_scaled = vfunc_scale(np.frombuffer(data_smooth))
-        smoothed_series = ndvi_scaled
-    else:
-        smoothed_series = data_smooth
+#    if band_to_analyse == 'NDVI':
+#       scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+#        vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+#        ndvi_scaled = vfunc_scale(np.frombuffer(data_smooth))
+#        smoothed_series = ndvi_scaled
+#    else:
+#        smoothed_series = data_smooth
         
-    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),smoothed_series))
+    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),data_smooth))
 
 
 def cog(input_tif, output_tif,no_data=None):
