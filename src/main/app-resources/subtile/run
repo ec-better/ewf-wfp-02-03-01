@@ -104,7 +104,7 @@ def main():
         
         print 'mask_stack.shape = {}'.format(mask_stack.shape)
         
-        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process)
+        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
         
         print 'result.shape = {}'.format(result.shape)
         
