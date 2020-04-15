@@ -254,7 +254,7 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
 
 
-def whittaker(ts, date_mask, band_to_analyse):
+def whittaker(ts, date_mask):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
     Args:
