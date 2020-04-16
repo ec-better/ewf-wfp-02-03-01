@@ -125,9 +125,13 @@ def main():
                         band_number, 
                         gdal.GDT_Int16)
 
+        log10_scale100 = lambda x: 0 if np.isnan(x) else(0 if x<=0 else 100*np.log10(x))
+        vfunc_log_scale100 = np.vectorize(log10_scale100,otypes=[np.int16])
+        S_grid = vfunc_log_scale100(result[0])
+        
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
-        ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
+        ds.GetRasterBand(1).WriteArray(S_grid, 0, 0)
         ds.GetRasterBand(1).SetDescription('s')
         ###Added Metadata even for lag1 , Sgrid
         metadata = dict()
@@ -152,9 +156,14 @@ def main():
                         band_number, 
                         gdal.GDT_Int16)
 
+        
+        scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+        vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+        lag1 = vfunc_scale(result[1])
+        
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
-        ds.GetRasterBand(1).WriteArray(result[1], 0, 0)
+        ds.GetRasterBand(1).WriteArray(lag1, 0, 0)
         ds.GetRasterBand(1).SetDescription('lag1')
         ###Added Metadata even for lag1 , Sgrid
         metadata = dict()
@@ -261,7 +270,7 @@ def main():
         ds = drv.Create('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -291,14 +300,14 @@ def main():
             
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
             
-#            if band_to_process == 'NDVI':
-#               scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-#               vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
-#                raster_to_write_result = vfunc_scale(result[index + 2])
-#            else:
-#                raster_to_write_result = result[index + 2]
+            if band_to_process == 'NDVI':
+                scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+                vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+                raster_to_write_result = vfunc_scale(result[index + 2])
+            else:
+                raster_to_write_result = result[index + 2]
                 
-            ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
+            ds.GetRasterBand(delta_day_index).WriteArray(raster_to_write_result, 0, 0)
             ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
             ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
         
