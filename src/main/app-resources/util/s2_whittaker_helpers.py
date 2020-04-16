@@ -323,8 +323,8 @@ def whittaker(ts, date_mask):
 #    else:
 #        smoothed_series = data_smooth
         
-    return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),data_smooth))
-
+#   return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),data_smooth))
+    return tuple(np.append(np.append(loptv,lag1), data_smooth))
 
 def cog(input_tif, output_tif,no_data=None):
     
