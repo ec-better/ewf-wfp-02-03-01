@@ -303,10 +303,10 @@ def main():
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
             
             if band_to_process == 'NDVI':
-                scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+                #scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
                 #raster_to_write_result = np.zeros((result[index + 2].shape[0],result[index + 2].shape[1]),dtype=np.float64)
-                vfunc_scale = np.vectorize(scale10k)
-                raster_to_write_result = vfunc_scale(result[index + 2])
+                #vfunc_scale = np.vectorize(scale10k)
+                raster_to_write_result = np.multiply(result[index + 2],10000)
             else:
                 raster_to_write_result = result[index + 2]
                 
