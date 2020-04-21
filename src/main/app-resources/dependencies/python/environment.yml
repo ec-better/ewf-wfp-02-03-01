@@ -6,10 +6,10 @@ channels:
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
-  - attrs=19.1.0=py27_1
-  - backports=1.0=py_2
-  - backports.functools_lru_cache=1.5=py_2
-  - backports.shutil_get_terminal_size=1.0.0=py27_2
+  - attrs=19.1.0
+  - backports=1.0
+  - backports.functools_lru_cache=1.5
+  - backports.shutil_get_terminal_size=1.0.0
   - backports_abc=0.5=py_0
   - blas=1.0=mkl
   - bzip2=1.0.8=h7b6447c_0
@@ -25,14 +25,14 @@ dependencies:
   - dbus=1.13.6=h746ee38_0
   - decorator=4.4.0=py37_1
   - descartes=1.1.0=py37_0
-  - enum34=1.1.6=py27_1
+  - enum34=1.1.6
   - expat=2.2.6=he6710b0_0
   - fiona=1.8.4=py27hc38cc03_0
   - fontconfig=2.13.0=h9420a91_0
   - freetype=2.9.1=h8a8886c_1
   - freexl=1.0.5=h14c3975_0
-  - functools32=3.2.3.2=py27_1
-  - futures=3.3.0=py27_0
+  - functools32=3.2.3.2
+  - futures=3.3.0
   - gdal=2.3.3=py37hbb2a789_0
   - geopandas=0.4.1=py_0
   - geos=3.7.1=he6710b0_0
