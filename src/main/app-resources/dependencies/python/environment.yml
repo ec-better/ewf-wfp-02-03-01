@@ -1,4 +1,4 @@
-name: env_ewf_wfp_02_03_01
+name: env_ewf_wfp_02_03_01_xxx
 channels:
   - https://conda.binstar.org/terradue
   - terradue
@@ -136,5 +136,5 @@ dependencies:
   - zeromq=4.3.1=he6710b0_3
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.3.7=h0b5b093_0
-prefix: /opt/anaconda/envs/env_ewf_wfp_02_03_01
+prefix: /opt/anaconda/envs/env_ewf_wfp_02_03_01_xxx
 
