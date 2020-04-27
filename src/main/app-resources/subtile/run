@@ -304,8 +304,8 @@ def main():
             
             if band_to_process == 'NDVI':
                 #scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-                scale10k = lambda x:  np.nan if np.isnan(x) else (x*10000)//1
-                vfunc_scale = np.vectorize(scale10k,otypes=[np.int64])
+                scale10k = lambda x:  -99999 if np.isnan(x) else (x*10000)//1
+                vfunc_scale = np.vectorize(scale10k)
                 raster_to_write_result = vfunc_scale(result[index + 2])
             else:
                 raster_to_write_result = result[index + 2]
