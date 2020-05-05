@@ -108,7 +108,7 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
 
 def get_vsi_url(enclosure, user, api_key):
     
-    parsed_url = urlparse(enclosure)
+    parsed_url = urlparse.urlparse(enclosure)
 
     url = '/vsicurl/%s://%s:%s@%s/api%s' % (list(parsed_url)[0],
                                             user, 
