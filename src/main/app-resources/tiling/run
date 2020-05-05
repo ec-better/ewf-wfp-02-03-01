@@ -88,7 +88,7 @@ def main():
 
         index += 1
 
-        print index, src_ds.GetRasterBand(index).GetDescription()
+        print(index, src_ds.GetRasterBand(index).GetDescription())
         bands[src_ds.GetRasterBand(index).GetDescription()] = index 
 
     tiling_factor = 10
@@ -98,11 +98,10 @@ def main():
     
     for index, sub_tile in enumerate(sub_tiles.sub_tile.unique()):
         
-        print index,sub_tile
+        print(index,sub_tile)
     
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
-                                                                                                                  '{}.pickle'.format(sub_tile)), 
-                                                                                                     'gzip')
+                                                                                                                  '{}.pickle'.format(sub_tile)), 'gzip')
         #Testing condition to reduce tiles
         #if index >= 2: continue
         

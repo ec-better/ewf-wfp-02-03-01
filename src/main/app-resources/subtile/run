@@ -102,11 +102,11 @@ def main():
         
         mask_stack = np.stack(sub_tile['SCL_mask'])
         
-        print 'mask_stack.shape = {}'.format(mask_stack.shape)
+        print('mask_stack.shape = {}'.format(mask_stack.shape))
         
         result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
         
-        print 'result.shape = {}'.format(result.shape)
+        print('result.shape = {}'.format(result.shape))
         
         ### Creating s GeoTiff ###
         ciop.log('INFO', 'Create the s GeoTIFF product for local tile {}'.format(local_subtile))
@@ -116,7 +116,7 @@ def main():
         cols = result.shape[1]
         rows = result.shape[2]
 
-        print ('s', band_number, cols, rows)
+        print('s', band_number, cols, rows)
 
         drv = gdal.GetDriverByName('GTiff')
 
@@ -149,7 +149,7 @@ def main():
         cols = result.shape[1]
         rows = result.shape[2]
 
-        print ('Lag-1', band_number, cols, rows)
+        print('Lag-1', band_number, cols, rows)
         drv = gdal.GetDriverByName('GTiff')
 
         ds = drv.Create('temp_lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
@@ -304,7 +304,7 @@ def main():
             
             if band_to_process == 'NDVI':
                 #scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-                scale10k = lambda x:  -99999 if np.isnan(x) else (x*10000)//1
+                scale10k = lambda x:  np.nan if np.isnan(x) else (x*10000)//1
                 vfunc_scale = np.vectorize(scale10k)
                 raster_to_write_result = vfunc_scale(result[index + 2])
             else:

@@ -7,10 +7,12 @@ sys.path.append('../util')
 import numpy as np
 import gdal
 import osr
-from urlparse import urlparse
+import urllib.parse as urlparse
+#from urlparse import urlparse
 import pandas as pd
 import datetime
-from whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
+#from whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
+from vam.whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
 from itertools import chain
 import cioppy
 import array
