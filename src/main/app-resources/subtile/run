@@ -322,7 +322,7 @@ def main():
                                    ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-3000),
                                    ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
                                    ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
-                                   ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).iteritems():
+                                   ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).items():
             
             cog('temp_{}'.format(result),result,nodata)
         
