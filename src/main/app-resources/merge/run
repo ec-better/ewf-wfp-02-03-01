@@ -165,13 +165,13 @@ def main():
     
     for output_type in df_references.output_type.unique():
         
-        print (output_type)
+        print(output_type)
         local_paths = [] 
         band_to_process = band_to_process_orig
 
         for entry, row in df_references[df_references.output_type == output_type].iterrows():
 
-            print row.enclosure
+            print (row.enclosure)
             local_paths.append(ciop.copy(row.enclosure, '.'))
 
         local_vrt = '{}_temp_vrt.xml'.format(output_type)
@@ -253,18 +253,18 @@ def main():
 
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
                     
             else:
                 
                 if 'SCL' in desc:
                     prd_type = 'SCL mask'
                     band_to_process = 'mask'
-                    print desc.split('SCL mask on ')[1]
+                    print (desc.split('SCL mask on ')[1])
                     band_datetime = datetime.datetime.strptime(desc.split('SCL mask on ')[1], '%Y%j').date()
                 else:
                     prd_type = 'original' if not 'band_is_interpolated' in meta.keys() else 'synthetic' if meta['band_is_interpolated'] == 'True' else 'native'
@@ -291,11 +291,11 @@ def main():
                 eop_xml = '{}.xml'.format(output_name)
                 
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
 
             for extension in ['tif', 'properties', 'xml']:
                 
