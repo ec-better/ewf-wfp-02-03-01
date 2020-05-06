@@ -253,11 +253,11 @@ def main():
 
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
                     
             else:
                 
@@ -291,11 +291,11 @@ def main():
                 eop_xml = '{}.xml'.format(output_name)
                 
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
 
             for extension in ['tif', 'properties', 'xml']:
                 
