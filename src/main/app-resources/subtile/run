@@ -104,7 +104,7 @@ def main():
         
         print('mask_stack.shape = {}'.format(mask_stack.shape))
         
-        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
+        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process)
         
         print('result.shape = {}'.format(result.shape))
         
@@ -127,7 +127,6 @@ def main():
 
         log10_scale100 = lambda x: 0 if np.isnan(x) else(0 if x<=0 else 100*np.log10(x))
         vfunc_log_scale100 = np.vectorize(log10_scale100)
-        #S_grid = np.zeros((result[0].shape[0],result[0].shape[1]),dtype=np.float64)
         S_grid = vfunc_log_scale100(result[0])
         
         ds.SetGeoTransform(geo_transform)
@@ -158,10 +157,6 @@ def main():
                         gdal.GDT_Float32)
 
 
-#        scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-#        vfunc_scale = np.vectorize(scale10k)
-#        #lag1 = np.zeros((result[1].shape[0],result[1].shape[1]),dtype=np.float64)
-#        lag1 = vfunc_scale(result[1])
         
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -207,7 +202,7 @@ def main():
             
             #ORIGINAL band 
             if band_to_process == 'NDVI':
-                scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
+                scale10k = lambda x: -3000 if x==-3000 else x*10000
                 vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
                 raster_to_write_ori = vfunc_scale(data_stack[index])
             else:
@@ -303,17 +298,12 @@ def main():
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
             
             if band_to_process == 'NDVI':
-                #scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-                #scale10k = lambda x:  -3000 if np.isnan(x) else (x*10000)
-                #vfunc_scale = np.vectorize(scale10k)
-                #raster_to_write_result = vfunc_scale(result[index + 2])
+
                 
                 ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2]*10000, 0, 0)
             else:
                 ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
-               # raster_to_write_result = result[index + 2]
-                
-            #ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
+
             ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
             ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
         
