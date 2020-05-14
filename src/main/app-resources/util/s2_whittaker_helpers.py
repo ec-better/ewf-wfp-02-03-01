@@ -188,8 +188,9 @@ def analyse_subtile(row, parameters, band_to_analyse):
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
-        # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero  
+        # NDVI<-0.2 set to noData
+        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (-3000 if ((x-y)/float(x+y))<-0.2 else (x-y)/float(x+y))
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -210,8 +211,8 @@ def analyse_subtile(row, parameters, band_to_analyse):
             
         series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
 
-        
-        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], -3000)
+        #noData value for other bands set to zero
+        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], 0)
     
 
     ds_mem.FlushCache()
@@ -256,7 +257,7 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
 
 
-def whittaker(ts, date_mask):
+def whittaker(ts, date_mask, band_to_analyse):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
     Args:
@@ -265,10 +266,15 @@ def whittaker(ts, date_mask):
     Returns:
         list of floating values. The first value is the s smoothing parameter
     """
+    if band_to_analyse == "NDVI":
+        nan_value = -3000
+    else:
+        nan_value = 0
+        
     mask = np.ones(len(ts))
-    mask[ts==-3000]=0
+    mask[ts==nan_value]=0
     # the output is an  array full of np.nan by default
-    data_smooth = np.array([-3000]*len(date_mask))
+    data_smooth = np.array([nan_value]*len(date_mask))
     
     # check if all values are np.npn
     if not mask.all():
@@ -276,7 +282,7 @@ def whittaker(ts, date_mask):
         # parameters needed for the first smoothing without interpolation
         #ts_not_nan = ts[~mask]
 
-        w=np.array((ts!=-3000)*1,dtype='double')
+        w=np.array((ts!=nan_value)*1,dtype='double')
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
@@ -301,31 +307,22 @@ def whittaker(ts, date_mask):
             
             # Calculates Lag-1 correlation
             
-            lag1 = lag1corr(ts[:-1], ts[1:], -3000)
+            lag1 = lag1corr(ts[:-1], ts[1:], nan_value)
             
             
 
 
         except Exception as e:
             loptv = 0
-            lag1 = -3000
+            lag1 = nan_value
             print(e)
             print(mask)
 
     else:
         loptv = 0
-        lag1 = -3000
+        lag1 = nan_value
         
 
-#    if band_to_analyse == 'NDVI':
-#       scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000)
-#        vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
-#        ndvi_scaled = vfunc_scale(np.frombuffer(data_smooth))
-#        smoothed_series = ndvi_scaled
-#    else:
-#        smoothed_series = data_smooth
-        
-#   return tuple(np.append(np.append(np.where(loptv>0,100*round(np.log10(loptv),2),0),10000*lag1),data_smooth))
     return tuple(np.append(np.append(loptv,lag1), data_smooth))
 
 def cog(input_tif, output_tif,no_data=None):
