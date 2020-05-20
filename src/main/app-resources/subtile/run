@@ -298,8 +298,6 @@ def main():
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
             
             if band_to_process == 'NDVI':
-
-                
                 ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2]*10000, 0, 0)
             else:
                 ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2], 0, 0)
