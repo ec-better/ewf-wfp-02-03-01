@@ -199,20 +199,20 @@ def analyse_subtile(row, parameters, band_to_analyse):
 
 
         # remove the no longer needed bands
-        #for band in ['B04', 'B08', 'SCL']:
-        #    series.pop(band, None)
+
         for band in ['B04', 'B08']:
             series.pop(band, None)
 
     else:
-        for band in [band_to_analyse]:
-            # read the data
-            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
-            
-        series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
+
+        # read the band as float as it is required in filter     
+        band_data = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray(),np.float32)
 
         #noData value for other bands set to zero
-        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], 0)
+        masked_band = lambda x,y : x if y else 0
+        vfunc_masked = np.vectorize(masked_band, otypes=[np.float])
+        series[band_to_analyse]=vfunc_masked(band_data, series['SCL_mask'])
+        #series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], 0)
     
 
     ds_mem.FlushCache()
