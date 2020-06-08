@@ -298,14 +298,14 @@ def main():
             ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
             
             ### NAT & SYN bands also scaled if value!=noData
-            if band_to_process == 'NDVI':
-                scale10k = lambda x: -3000 if x==-3000 else x*10000
-                vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
-                raster_to_write_nat_syn = vfunc_scale(result[index + 2])
-            else:
-                aster_to_write_nat_syn = result[index + 2]
+#            if band_to_process == 'NDVI':
+#                scale10k = lambda x: -3000 if np.isnan(x) else(-3000 if x==-3000 else x*10000) 
+#                vfunc_scale = np.vectorize(scale10k)
+#                raster_to_write_nat_syn = vfunc_scale(result[index + 2])
+#            else:
+#                aster_to_write_nat_syn = result[index + 2]
 
-            ds.GetRasterBand(delta_day_index).WriteArray(raster_to_write_nat_syn, 0, 0)
+            ds.GetRasterBand(delta_day_index).WriteArray(result[index + 2]*10000, 0, 0)
             ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
             ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
         
@@ -314,9 +314,9 @@ def main():
         ds.FlushCache()
         
         for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 0),
-                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-3000),
-                                   ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
-                                   ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
+                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),0),
+                                   ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-3000 if band_to_process == 'NDVI' else 0),
+                                   ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-3000 if band_to_process == 'NDVI' else 0),
                                    ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).items():
             
             cog('temp_{}'.format(result),result,nodata)
