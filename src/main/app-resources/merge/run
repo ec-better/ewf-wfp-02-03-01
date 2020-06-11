@@ -114,7 +114,8 @@ def create_metadata(metadata):
     SpecificInformation = etree.SubElement(vendorSpecific, '{{{}}}SpecificInformation'.format(namespaces['eop']))
     localAttribute = etree.SubElement(SpecificInformation, '{{{}}}localAttribute'.format(namespaces['eop']))
     localValue = etree.SubElement(SpecificInformation, '{{{}}}localValue'.format(namespaces['eop']))
-
+    specialValueText = etree.SubElement(SpecificInformation, '{{{}}}specialValueText'.format(namespaces['eop']))
+    specialValueIndex = etree.SubElement(SpecificInformation, '{{{}}}specialValueIndex'.format(namespaces['eop']))
     
     if 'startdate' in metadata.keys():
         begin_position.text = metadata['startdate']
@@ -135,8 +136,9 @@ def create_metadata(metadata):
     product_type.text = metadata['product_type'] 
     localAttribute.text = 'Band'
     localValue.text = metadata['vendor_attrib_value']
-
     
+    specialValueText.text = 'NODATA'
+    specialValueIndex.text = metadata['no_data']
     return etree.tostring(root, pretty_print=True)
 
 def main():
@@ -250,7 +252,7 @@ def main():
                 metadata['product_type'] = 'S2_{}'.format(prd_type)
                 metadata['wkt'] = get_raster_wkt(translated_tif) 
                 metadata['vendor_attrib_value'] = band_to_process_orig
-
+                metadata['no_data'] = '0'   #noData for Sgrid and lag1
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
                     file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
@@ -285,6 +287,12 @@ def main():
                 metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, 'ORI' if not 'band_is_interpolated' in meta.keys() else 'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT')
                 metadata['wkt'] = get_raster_wkt(translated_tif)
                 metadata['vendor_attrib_value'] = band_to_process_orig
+                if band_to_process_orig == 'NDVI':
+                    metadata['no_data'] = '-3000'  #noData NDVI
+                else: 
+                    metadata['no_data'] = '0'      #noData for other bands
+                    
+                    
                 if 'SCL' in desc:
                     metadata['product_type'] = 'S2_{}'.format('_'.join(prd_type.split(' ')))
                     

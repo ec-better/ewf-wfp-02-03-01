@@ -278,9 +278,6 @@ def whittaker(ts, date_mask, band_to_analyse):
     
     # check if all values are np.npn
     if not mask.all():
-        
-        # parameters needed for the first smoothing without interpolation
-        #ts_not_nan = ts[~mask]
 
         w=np.array((ts!=nan_value)*1,dtype='double')
         lrange = array.array('d', np.linspace(-2, 4, 61))
@@ -292,8 +289,7 @@ def whittaker(ts, date_mask, band_to_analyse):
            
             dvec = np.zeros(len(date_mask))
             w_d=np.ones(len(date_mask), dtype='double')
-            
-            #w[mask] = 0
+
             
             # adding new dates with no associated product to the weights
             for idx, el in enumerate(date_mask):
@@ -335,7 +331,7 @@ def cog(input_tif, output_tif,no_data=None):
         translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
                                                                         '-co COPY_SRC_OVERVIEWS=YES ' \
                                                                         '-co COMPRESS=LZW '\
-                                                                        '-a_nodata -3000'))
+                                                                        '-a_nodata {}'.format(no_data)))
     ds = gdal.Open(input_tif, gdal.OF_READONLY)
 
     gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')
