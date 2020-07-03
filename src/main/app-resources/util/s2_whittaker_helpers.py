@@ -277,7 +277,7 @@ def whittaker(ts, date_mask, band_to_analyse):
     data_smooth = np.array([nan_value]*len(date_mask))
     
     # check if all values are np.npn
-    if not mask.all():
+    if (mask==0).all()==False:
 
         w=np.array((ts!=nan_value)*1,dtype='double')
         lrange = array.array('d', np.linspace(-2, 4, 61))
