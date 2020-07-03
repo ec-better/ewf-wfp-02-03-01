@@ -279,7 +279,7 @@ def whittaker(ts, date_mask, band_to_analyse):
     # check if all values are np.npn
     if (mask==0).all()==False:
 
-        w=np.array((ts!=nan_value)*1,dtype='double')s
+        w=np.array((ts!=nan_value)*1,dtype='double')
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
