@@ -43,17 +43,44 @@ def main():
     
     data_pipeline_parameters['username'] = ciop.getparam('_T2Username')
     data_pipeline_parameters['api_key'] = ciop.getparam('_T2ApiKey')
+    data_pipeline_parameters['end_point'] = ciop.getparam('input_end_point')
+    
+    #### Search Params
+    cc = '[0,{}]'.format(ciop.getparam('CC_threshold')) 
+    search_params = dict()
+    
+    search_params['start'] = ciop.getparam('start_date')
+    search_params['stop'] = ciop.getparam('end_date')
+    search_params['q'] = ciop.getparam('tile_id')
+    
+    search_params['cat'] =  '!dataitem'
+    search_params['count'] = 500
+    
+    search_params['cc'] = cc
+    
     
     creds = '{}:{}'.format(data_pipeline_parameters['username'],
                            data_pipeline_parameters['api_key'])
 
+    search_input = pd.DataFrame(ciop.search(end_point=data_pipeline_parameters['end_point'],
+                                      params=search_params,
+                                      output_fields='self,startdate',
+                                      model='GeoTime',
+                                      creds=creds))
+    search_input.columns=['self','startdate']
+    
+    ref_dataframe = search_input.drop_duplicates(subset=['startdate'], keep="first", inplace=False)
+    references = ref_dataframe['self'].tolist()
+    
+    
+    
+
     os.chdir(ciop.tmp_dir)
  
-    references = []
-                
-    for input in sys.stdin:
-        ciop.log('INFO', 'Adding {}'.format(input.rstrip()))       
-        references.append(input.rstrip())
+#    references = []               
+#    for input in sys.stdin:
+#        ciop.log('INFO', 'Adding {}'.format(input.rstrip()))       
+#        references.append(input.rstrip())
 
     data_pipeline_results = pd.DataFrame()
 
