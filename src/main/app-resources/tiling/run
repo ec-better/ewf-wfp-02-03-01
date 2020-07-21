@@ -65,6 +65,7 @@ def main():
     search_input = pd.DataFrame(ciop.search(end_point=data_pipeline_parameters['end_point'],
                                       params=search_params,
                                       output_fields='self,startdate',
+                                      timeout='1200000',
                                       model='GeoTime',
                                       creds=creds))
     search_input.columns=['self','startdate']
