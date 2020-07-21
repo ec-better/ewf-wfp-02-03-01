@@ -7,10 +7,12 @@ sys.path.append('../util')
 import numpy as np
 import gdal
 import osr
-from urlparse import urlparse
+import urllib.parse as urlparse
+#from urlparse import urlparse
 import pandas as pd
 import datetime
-from whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
+#from whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
+from vam.whittaker import ws2d, ws2doptv, ws2doptvp, lag1corr
 from itertools import chain
 import cioppy
 import array
@@ -106,7 +108,7 @@ def get_sub_tiles(data_pipeline_results, pipeline_parameters, tiling_factor):
 
 def get_vsi_url(enclosure, user, api_key):
     
-    parsed_url = urlparse(enclosure)
+    parsed_url = urlparse.urlparse(enclosure)
 
     url = '/vsicurl/%s://%s:%s@%s/api%s' % (list(parsed_url)[0],
                                             user, 
@@ -186,8 +188,9 @@ def analyse_subtile(row, parameters, band_to_analyse):
             # read the data
             series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
 
-        # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero    
-        ndvi = lambda x,y,z: np.nan if(x+y)==0 or z==False  else (x-y)/float(x+y)
+        # NDVI calculation done by lazy evaluation structure lambda to avoid division-by-zero  
+        # NDVI<-0.2 set to noData
+        ndvi = lambda x,y,z: -3000 if(x+y)==0 or z==False  else (-3000 if ((x-y)/float(x+y))<-0.2 else (x-y)/float(x+y))
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
@@ -196,20 +199,20 @@ def analyse_subtile(row, parameters, band_to_analyse):
 
 
         # remove the no longer needed bands
-        #for band in ['B04', 'B08', 'SCL']:
-        #    series.pop(band, None)
+
         for band in ['B04', 'B08']:
             series.pop(band, None)
 
     else:
-        for band in [band_to_analyse]:
-            # read the data
-            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray())
-            
-        series[band_to_analyse] = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray())
 
-        
-        series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], np.nan)
+        # read the band as float as it is required in filter     
+        band_data = np.array(ds_mem.GetRasterBand(bands[band_to_analyse]).ReadAsArray(),np.float32)
+
+        #noData value for other bands set to zero
+        masked_band = lambda x,y : x if y else 0
+        vfunc_masked = np.vectorize(masked_band, otypes=[np.float])
+        series[band_to_analyse]=vfunc_masked(band_data, series['SCL_mask'])
+        #series[band_to_analyse] = np.where(series['SCL_mask'], series[band_to_analyse], 0)
     
 
     ds_mem.FlushCache()
@@ -252,75 +255,71 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
     return datelist
 
-def whittaker(ts, date_mask):
+
+
+def whittaker(ts, date_mask, band_to_analyse):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
-
     Args:
         ts: array of floating values
         date_mask: full list of julian dates as string YYYYJJJ
-
     Returns:
         list of floating values. The first value is the s smoothing parameter
     """
-    
-    #  mask is True when the value is np.nan
-    mask = np.isnan(ts)
-    
+    if band_to_analyse == "NDVI":
+        nan_value = -3000
+    else:
+        nan_value = 0
+        
+    mask = np.ones(len(ts))
+    mask[ts==nan_value]=0
     # the output is an  array full of np.nan by default
-    ndvi_smooth = np.array([np.nan]*len(date_mask))
+    data_smooth = np.array([nan_value]*len(date_mask))
     
     # check if all values are np.npn
-    if not mask.all():
-        
-        # parameters needed for the first smoothing without interpolation
-        ts_not_nan = ts[~mask]
+    if (mask==0).all()==False:
 
-        w = np.ones(len(ts_not_nan), dtype='double')
-
+        w=np.array((ts!=nan_value)*1,dtype='double')
         lrange = array.array('d', np.linspace(-2, 4, 61))
         
         try: 
             # apply whittaker filter with V-curve
-            zv, loptv = ws2doptvp(ts_not_nan, w, lrange, p=0.90)
+            zv, loptv = ws2doptvp(ts, w, lrange, p=0.90)
             #parameters needed for the interpolation step
+           
             dvec = np.zeros(len(date_mask))
-            
-            w = np.ones(len(ts), dtype='double')
-            
-            w[mask] = 0
+            w_d=np.ones(len(date_mask), dtype='double')
+
             
             # adding new dates with no associated product to the weights
             for idx, el in enumerate(date_mask):
                 if not el:
-                    w = np.insert(w, idx, 0)
+                    w_d[idx]= 0
 
-            dvec[w==1] = zv
+            dvec[w_d==1]= zv
             
             # apply whittaker filter with very low smoothing to interpolate
-            ndvi_smooth = ws2d(dvec, 0.0001, w)
+            data_smooth = ws2d(dvec, 0.0001, w_d)
             
             # Calculates Lag-1 correlation
-            #def test_lag1corr(self):
-            #    """Test lag-1 correlation function."""
-            #    self.assertAlmostEqual(lag1corr(self.y[:-1], self.y[1:], -3000.0), self.data['lag1corr'])
-            #lag1 = lag1corr(ts[:-1], ts[1:], -999)
-            lag1 = lag1corr(ndvi_smooth[:-1], ndvi_smooth[1:], -999)
-            #lag1 = lag1corr(zv[:-1], zv[1:], -999)
+            
+            lag1 = lag1corr(ts[:-1], ts[1:], nan_value)
+            
             
 
 
         except Exception as e:
-            loptv = -999
-            lag1 = -999
+            loptv = 0
+            lag1 = nan_value
             print(e)
             print(mask)
 
     else:
-        loptv = -999
-        lag1 = -999
+        loptv = 0
+        lag1 = nan_value
         
-    return tuple(np.append(np.append(loptv,lag1), ndvi_smooth))
+
+    return tuple(np.append(np.append(loptv,lag1), data_smooth))
 
 def cog(input_tif, output_tif,no_data=None):
     
@@ -332,7 +331,7 @@ def cog(input_tif, output_tif,no_data=None):
         translate_options = gdal.TranslateOptions(gdal.ParseCommandLine('-co TILED=YES ' \
                                                                         '-co COPY_SRC_OVERVIEWS=YES ' \
                                                                         '-co COMPRESS=LZW '\
-                                                                        '-a_nodata -999'))
+                                                                        '-a_nodata {}'.format(no_data)))
     ds = gdal.Open(input_tif, gdal.OF_READONLY)
 
     gdal.SetConfigOption('COMPRESS_OVERVIEW', 'DEFLATE')

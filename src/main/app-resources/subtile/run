@@ -43,6 +43,7 @@ def main():
     os.chdir(ciop.tmp_dir)
     
     band_to_process = ciop.getparam('band')
+    delta_day = int(ciop.getparam('delta_time_output'))
 
     data_pipeline_parameters = dict()    
     
@@ -66,7 +67,7 @@ def main():
 
         sub_tile = pd.read_pickle(local_subtile, 'gzip')
         
-        ciop.log('INFO', 'Getting the arrays for local tile {}'.format(local_subtile))
+        
 
         sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters, band_to_process), axis=1),
                                   left_index=True,
@@ -85,14 +86,13 @@ def main():
         
         ciop.log('INFO', 'Smoothing local tile {}'.format(local_subtile))
         dates = sub_tile['jday']
-        
-        # PP 
-        ciop.log('INFO', 'PP added these debugging lines :-D')
-        ciop.log('INFO', 'sub_tile_jday_is: {}'.format(dates))
+
         
         
         # the generate_dates function creates a list of days with a delta time=5
         full_dates = generate_dates(startdate_string=list(dates)[0], enddate_string=list(dates)[-1], delta=1)
+        # Parameter to be set in metadata 
+        full_period = '{}_{}'.format(fromjulian(full_dates[0]).strftime('%Y%m%d'),fromjulian(full_dates[-1]).strftime('%Y%m%d'))
         
         # the date_mask array is False when there is no product associated to that date.
         # this is needed by the whittaker function in the interpolation step.
@@ -102,11 +102,11 @@ def main():
         
         mask_stack = np.stack(sub_tile['SCL_mask'])
         
-        print 'mask_stack.shape = {}'.format(mask_stack.shape)
+        print('mask_stack.shape = {}'.format(mask_stack.shape))
         
-        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask)
+        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process)
         
-        print 'result.shape = {}'.format(result.shape)
+        print('result.shape = {}'.format(result.shape))
         
         ### Creating s GeoTiff ###
         ciop.log('INFO', 'Create the s GeoTIFF product for local tile {}'.format(local_subtile))
@@ -116,19 +116,28 @@ def main():
         cols = result.shape[1]
         rows = result.shape[2]
 
-        print ('s', band_number, cols, rows)
+        print('s', band_number, cols, rows)
 
         drv = gdal.GetDriverByName('GTiff')
 
         ds = drv.Create('temp_s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
+        log10_scale100 = lambda x: 0 if np.isnan(x) else(0 if x<=0 else 100*np.log10(x))
+        vfunc_log_scale100 = np.vectorize(log10_scale100)
+        S_grid = vfunc_log_scale100(result[0])
+        
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
-        ds.GetRasterBand(1).WriteArray(result[0], 0, 0)
+        ds.GetRasterBand(1).WriteArray(S_grid, 0, 0)
         ds.GetRasterBand(1).SetDescription('s')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
+        
         ds.FlushCache()
         
         # Creating the lag1corr GeoTiff
@@ -139,7 +148,7 @@ def main():
         cols = result.shape[1]
         rows = result.shape[2]
 
-        print ('Lag-1', band_number, cols, rows)
+        print('Lag-1', band_number, cols, rows)
         drv = gdal.GetDriverByName('GTiff')
 
         ds = drv.Create('temp_lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
@@ -147,10 +156,16 @@ def main():
                         band_number, 
                         gdal.GDT_Float32)
 
+
+        
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
         ds.GetRasterBand(1).WriteArray(result[1], 0, 0)
         ds.GetRasterBand(1).SetDescription('lag1')
+        ###Added Metadata even for lag1 , Sgrid
+        metadata = dict()
+        metadata['full_period'] = full_period
+        ds.GetRasterBand(1).SetMetadata(metadata)
         ds.FlushCache()
         
         ### Creating original values GeoTiff ###
@@ -166,7 +181,7 @@ def main():
         ds = drv.Create('temp_original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -175,8 +190,7 @@ def main():
         ds = gdal.Open('temp_original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
         for index, band in enumerate(range(0, band_number)):
-            ciop.log('INFO', 'PP added these debugging lines :-D')
-            ciop.log('INFO', 'date_index{}_is: {}'.format(index,dates[index]))
+
             
             product_date = datetime.datetime.strptime(dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
@@ -184,8 +198,17 @@ def main():
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = dates[index]
-
-            ds.GetRasterBand(index + 1).WriteArray(data_stack[index], 0, 0)
+            metadata['full_period'] = full_period
+            
+            #ORIGINAL band 
+            if band_to_process == 'NDVI':
+                scale10k = lambda x: -3000 if x==-3000 else x*10000
+                vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+                raster_to_write_ori = vfunc_scale(data_stack[index])
+            else:
+                raster_to_write_ori = data_stack[index]
+            
+            ds.GetRasterBand(index + 1).WriteArray(raster_to_write_ori, 0, 0)
             ds.GetRasterBand(index + 1).SetDescription(dates[index])
             ds.GetRasterBand(index + 1).SetMetadata(metadata)
 
@@ -204,7 +227,7 @@ def main():
         ds = drv.Create('temp_mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -220,6 +243,7 @@ def main():
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = dates[index]
+            metadata['full_period'] = full_period
 
             ds.GetRasterBand(index + 1).WriteArray(mask_stack[index], 0, 0)
             ds.GetRasterBand(index + 1).SetDescription('SCL mask on {}'.format(dates[index]))
@@ -227,11 +251,12 @@ def main():
 
         ds.FlushCache()
         
-        
         ### Creating GeoTiff ###
         ciop.log('INFO', 'Create the {} GeoTIFF product for local tile {}'.format(band_to_process, local_subtile))
-        #band_number = result.shape[0] - 1
-        band_number = result.shape[0] - 2
+        
+        out_bands = range(0, result.shape[0]-2, delta_day)
+        
+        band_number = len(out_bands)
         cols = result.shape[1]
         rows = result.shape[2]
 
@@ -242,7 +267,7 @@ def main():
         ds = drv.Create('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 
                         cols, rows, 
                         band_number, 
-                        gdal.GDT_Float32)
+                        gdal.GDT_Int16)
 
         ds.SetGeoTransform(geo_transform)
         ds.SetProjection(projection)
@@ -250,29 +275,52 @@ def main():
         
         ds = gdal.Open('temp_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), gdal.OF_UPDATE)
 
-        for index, band in enumerate(range(0, band_number)):
+        delta_day_index=0
         
+        for index in out_bands:
+            
+            ciop.log('DEBUG', '{} initial number of bands: {}'.format(band_to_process,ds.RasterCount))
+            
+            ciop.log('DEBUG', 'index : {}'.format(index))
+            
             product_date = datetime.datetime.strptime(full_dates[index], '%Y%j').date()
             date = '{}{:02d}{:02d}'.format(product_date.year, product_date.month, product_date.day)
             band_is_interpolated = 'False' if full_dates[index] in list(dates) else 'True'
+            
 
             metadata = dict()
             metadata['date'] = date
             metadata['jdate'] = full_dates[index]
             metadata['band_is_interpolated'] = band_is_interpolated
+            metadata['full_period'] = full_period
+            delta_day_index += 1
+            
+            ciop.log('DEBUG', 'band index {}'.format(delta_day_index))
+            
+            ### NAT & SYN bands also scaled if value!=noData
+            if band_to_process == 'NDVI':
+                scale10k_conditioned = lambda x: -3000 if np.isnan(x) or np.isinf(x) or x==-3000 else x*10000
+                vfunc_scale_con = np.vectorize(scale10k_conditioned)
+                raster_to_write_nat_syn = vfunc_scale_con(result[index + 2])
+            else:
+                raster_to_write_nat_syn = result[index + 2]
 
-            #ds.GetRasterBand(index + 1).WriteArray(result[index + 1], 0, 0)
-            ds.GetRasterBand(index + 1).WriteArray(result[index + 2], 0, 0)
-            ds.GetRasterBand(index + 1).SetDescription(full_dates[index])
-            ds.GetRasterBand(index + 1).SetMetadata(metadata)
-
-        ds.FlushCache()
+            ds.GetRasterBand(delta_day_index).WriteArray(raster_to_write_nat_syn, 0, 0)
+            ds.GetRasterBand(delta_day_index).SetDescription(full_dates[index])
+            ds.GetRasterBand(delta_day_index).SetMetadata(metadata)
         
-        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), -999),
-                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),-999),
-                                   ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
-                                   ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None),
-                                   ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).iteritems():
+        ciop.log('DEBUG', '{} number of bands: {}'.format(band_to_process,ds.RasterCount))
+        
+        ds.FlushCache()
+        if band_to_process == 'NDVI':
+            no_data=-3000
+        else:
+            no_data=0
+        for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 0),
+                                   ('lag1_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),0),
+                                   ('{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),no_data),
+                                   ('original_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),no_data),
+                                   ('mask_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)),None)]).items():
             
             cog('temp_{}'.format(result),result,nodata)
         

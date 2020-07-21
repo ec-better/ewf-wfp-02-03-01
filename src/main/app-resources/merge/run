@@ -110,6 +110,12 @@ def create_metadata(metadata):
     earth_observation_metadata = etree.SubElement(metadata_property, '{{{}}}EarthObservationMetaData'.format(namespaces['eop']))
     identifier = etree.SubElement(earth_observation_metadata, '{{{}}}identifier'.format(namespaces['eop']))
     product_type = etree.SubElement(earth_observation_metadata, '{{{}}}productType'.format(namespaces['eop']))
+    vendorSpecific = etree.SubElement(earth_observation_metadata, '{{{}}}vendorSpecific'.format(namespaces['eop']))
+    SpecificInformation = etree.SubElement(vendorSpecific, '{{{}}}SpecificInformation'.format(namespaces['eop']))
+    localAttribute = etree.SubElement(SpecificInformation, '{{{}}}localAttribute'.format(namespaces['eop']))
+    localValue = etree.SubElement(SpecificInformation, '{{{}}}localValue'.format(namespaces['eop']))
+    specialValueText = etree.SubElement(SpecificInformation, '{{{}}}specialValueText'.format(namespaces['eop']))
+    specialValueIndex = etree.SubElement(SpecificInformation, '{{{}}}specialValueIndex'.format(namespaces['eop']))
     
     if 'startdate' in metadata.keys():
         begin_position.text = metadata['startdate']
@@ -128,7 +134,11 @@ def create_metadata(metadata):
     
     identifier.text = metadata['identifier'] 
     product_type.text = metadata['product_type'] 
+    localAttribute.text = 'Band'
+    localValue.text = metadata['vendor_attrib_value']
     
+    specialValueText.text = 'NODATA'
+    specialValueIndex.text = metadata['no_data']
     return etree.tostring(root, pretty_print=True)
 
 def main():
@@ -157,13 +167,13 @@ def main():
     
     for output_type in df_references.output_type.unique():
         
-        print (output_type)
+        print(output_type)
         local_paths = [] 
         band_to_process = band_to_process_orig
 
         for entry, row in df_references[df_references.output_type == output_type].iterrows():
 
-            print row.enclosure
+            print (row.enclosure)
             local_paths.append(ciop.copy(row.enclosure, '.'))
 
         local_vrt = '{}_temp_vrt.xml'.format(output_type)
@@ -171,10 +181,15 @@ def main():
         ds = gdal.BuildVRT(local_vrt, local_paths)
 
         ds.FlushCache()
-
+        gdal.UseExceptions()
         src_ds = gdal.Open(local_paths[0])
-
+        if not src_ds:
+            ciop.log('DEBUG', 'The local path to {} is void.'.format(local_paths[0]))
+            
+        
         # save individual bands
+        ciop.log('DEBUG', 'number of bands {}'.format(src_ds.RasterCount))
+        
         for index in range(src_ds.RasterCount):
 
             desc = src_ds.GetRasterBand(index+1).GetDescription()
@@ -184,13 +199,14 @@ def main():
             
             if desc == 's' or desc == 'lag1':
                 #s or lag1
-                output_name = 'S2_{}_{}'.format(output_type, tile)
+                output_name = 'S2_{}_{}_{}'.format(output_type, tile, meta['full_period'])
                 translated_tif = '{}.tif'.format(output_name)
                 
             elif 'SCL' in desc:
-                output_name = 'S2_{}_{}_{}'.format(output_type, 
+                output_name = 'S2_{}_{}_{}_{}'.format(output_type, 
                                                 tile,
-                                                meta['date'])
+                                                meta['date'],
+                                                meta['full_period'])
                 translated_tif = '{}.tif'.format(output_name)
                 
             else:
@@ -199,8 +215,8 @@ def main():
                     output_name = 'S2_{}_{}_{}_{}_{}'.format(band_to_process,
                                                              'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT',
                                                              tile,
-                                                             desc,
-                                                             meta['date'])
+                                                             meta['date'],
+                                                             meta['full_period'])
 
                     translated_tif = '{}.tif'.format(output_name)
                 else:
@@ -208,8 +224,8 @@ def main():
                     output_name = 'S2_{}_{}_{}_{}_{}'.format(band_to_process,
                                                              'ORI',
                                                              tile,
-                                                             desc,
-                                                             meta['date'])
+                                                             meta['date'],
+                                                             meta['full_period'])
 
                     translated_tif = '{}.tif'.format(output_name)
 
@@ -234,32 +250,34 @@ def main():
                # metadata['startdate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT00:00:00Z')
                # metadata['enddate'] = datetime.datetime.strptime(desc, '%Y%j').date().strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}'.format(prd_type)
-                metadata['wkt'] = get_raster_wkt(translated_tif)
-
+                metadata['wkt'] = get_raster_wkt(translated_tif) 
+                metadata['vendor_attrib_value'] = band_to_process_orig
+                metadata['no_data'] = '0'   #noData for Sgrid and lag1
                 eop_xml = '{}.xml'.format(output_name)
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
                     
             else:
                 
                 if 'SCL' in desc:
                     prd_type = 'SCL mask'
                     band_to_process = 'mask'
-                    print desc.split('SCL mask on ')[1]
+                    print (desc.split('SCL mask on ')[1])
                     band_datetime = datetime.datetime.strptime(desc.split('SCL mask on ')[1], '%Y%j').date()
                 else:
                     prd_type = 'original' if not 'band_is_interpolated' in meta.keys() else 'synthetic' if meta['band_is_interpolated'] == 'True' else 'native'
                     band_datetime = datetime.datetime.strptime(desc, '%Y%j').date()
                 
-                title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}'.format(tile,
+                title = 'Sentinel-2 tile {} {} {} Julian day {}, date {}, full period {}'.format(tile,
                                                                                  band_to_process,
                                                                                  prd_type,
                                                                                  meta['jdate'], 
-                                                                                 band_datetime.strftime('%Y-%m-%d'))
+                                                                                 band_datetime.strftime('%Y-%m-%d'),
+                                                                                 meta['full_period'])
 
                 metadata = dict()
 
@@ -268,18 +286,24 @@ def main():
                 metadata['enddate'] = band_datetime.strftime('%Y-%m-%dT23:59:59Z')
                 metadata['product_type'] = 'S2_{}_{}'.format(band_to_process, 'ORI' if not 'band_is_interpolated' in meta.keys() else 'SYN' if meta['band_is_interpolated'] == 'True' else 'NAT')
                 metadata['wkt'] = get_raster_wkt(translated_tif)
-                
+                metadata['vendor_attrib_value'] = band_to_process_orig
+                if band_to_process_orig == 'NDVI':
+                    metadata['no_data'] = '-3000'  #noData NDVI
+                else: 
+                    metadata['no_data'] = '0'      #noData for other bands
+                    
+                    
                 if 'SCL' in desc:
                     metadata['product_type'] = 'S2_{}'.format('_'.join(prd_type.split(' ')))
                     
                 eop_xml = '{}.xml'.format(output_name)
                 
                 with open(eop_xml, 'wb') as file:
-                    file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+                    file.write(bytes('<?xml version="1.0" encoding="UTF-8"?>\n',encoding = 'utf-8'))
                     file.write(create_metadata(metadata))
 
                 with open('{}.properties'.format(output_name), 'wb') as file:
-                    file.write('title={}\n'.format(title))
+                    file.write(bytes('title={}\n'.format(title),encoding = 'utf-8'))
 
             for extension in ['tif', 'properties', 'xml']:
                 
