@@ -94,7 +94,7 @@ def main():
                                                      params=search_result_params,
                                                      output_fields=fields, 
                                                      model='EOP',
-                                                     timeout='60000',
+                                                     timeout='600000',
                                                      creds=creds))
 
         data_pipeline_results = data_pipeline_results.append(temp_df, ignore_index=True)
