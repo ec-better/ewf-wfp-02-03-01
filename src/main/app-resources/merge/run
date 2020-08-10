@@ -289,6 +289,8 @@ def main():
                 metadata['vendor_attrib_value'] = band_to_process_orig
                 if band_to_process_orig == 'NDVI':
                     metadata['no_data'] = '-3000'  #noData NDVI
+                if band_to_process_orig in 'NDWI MNDWI NDBI':
+                    metadata['no_data'] = '-10000'  #noData NDWI MNDWI NDBI
                 else: 
                     metadata['no_data'] = '0'      #noData for other bands
                     

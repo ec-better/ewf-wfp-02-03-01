@@ -182,6 +182,12 @@ def analyse_subtile(row, parameters, band_to_analyse):
     series['projection'] = ds_mem.GetProjection()
     series['SCL']= np.array(ds_mem.GetRasterBand(bands['SCL']).ReadAsArray())
     series['SCL_mask'] = ((series['SCL'] == 2) | (series['SCL'] == 4) | (series['SCL'] == 5) | (series['SCL'] == 6) |(series['SCL'] == 7) | (series['SCL'] == 10) | (series['SCL'] == 11))
+    
+    # index calculation done by lazy evaluation structure lambda to avoid division-by-zero  
+    index_expression = lambda x,y,z: -10000 if(x+y)==0 or z==False else (x-y)/float(x+y)
+    vfunc = np.vectorize(index_expression, otypes=[np.float])
+    
+    
     if band_to_analyse == 'NDVI':
         
         for band in ['B04', 'B08']:
@@ -194,13 +200,44 @@ def analyse_subtile(row, parameters, band_to_analyse):
         vfunc = np.vectorize(ndvi, otypes=[np.float])
         series['NDVI']=vfunc(series['B08'] ,series['B04'],series['SCL_mask'] )
 
-        
-
-
-
         # remove the no longer needed bands
-
         for band in ['B04', 'B08']:
+            series.pop(band, None)
+            
+    elif band_to_analyse == 'NDWI':
+        
+        for band in ['B03', 'B08']:
+            # read the data
+            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
+            
+        series['NDWI']=vfunc(series['B03'] ,series['B08'],series['SCL_mask'] )
+        
+        # remove the no longer needed bands
+        for band in ['B03', 'B08']:
+            series.pop(band, None)
+            
+    elif band_to_analyse == 'MNDWI':
+        
+        for band in ['B03', 'B11']:
+            # read the data
+            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
+            
+        series['MNDWI']=vfunc(series['B03'] ,series['B11'],series['SCL_mask'] )
+        
+        # remove the no longer needed bands
+        for band in ['B03', 'B11']:
+            series.pop(band, None)
+            
+    elif band_to_analyse == 'NDBI':
+        
+        for band in ['B11', 'B08']:
+            # read the data
+            series[band] = np.array(ds_mem.GetRasterBand(bands[band]).ReadAsArray(),np.float32)
+            
+        series['NDBI']=vfunc(series['B11'] ,series['B08'],series['SCL_mask'] )
+        
+        # remove the no longer needed bands
+        for band in ['B11', 'B08']:
             series.pop(band, None)
 
     else:
@@ -268,6 +305,8 @@ def whittaker(ts, date_mask, band_to_analyse):
     """
     if band_to_analyse == "NDVI":
         nan_value = -3000
+    elif band_to_analyse in "NDWI MNDWI NDBI":
+        nan_value = -10000
     else:
         nan_value = 0
         

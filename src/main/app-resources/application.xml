@@ -10,7 +10,7 @@
             <parameter id='start_date' title='start_date' abstract='start_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime"></parameter>
             <parameter id='end_date' title='end_date' abstract='end_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime"></parameter>
             <parameter id='tile_id' title='tile_id' abstract='tile_id' scope="runtime">S2*T33UXP*</parameter>
-            <parameter id='CC_threshold' title='CC_threshold' abstract='CloudCoverage Threshold' scope="runtime">50</parameter>
+            <parameter id='CC_threshold' title='CC_threshold' abstract='CloudCoverage Threshold' scope="runtime">100</parameter>
         </defaultParameters>
        <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
@@ -26,6 +26,9 @@
             <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
                 <options>
                     <option>NDVI</option>
+                    <option>NDWI</option>
+                    <option>MNDWI</option>
+                    <option>NDBI</option>
                     <option>B01</option>
                     <option>B02</option>
                     <option>B03</option>
@@ -38,13 +41,13 @@
                     <option>B09</option>
                     <option>B11</option>
                     <option>B12</option>
-                    <default>B01</default>
+                    <default>NDVI</default>
                 </options>
              </parameter>   
             
         </defaultParameters>
       <defaultJobconf>
-          <property id="mapred.task.timeout">86400000</property> <!-- 24 hours -->
+          <property id="mapred.task.timeout">172800000</property> <!-- 48 hours -->
       </defaultJobconf>
     </jobTemplate>
     <jobTemplate id="merge">
@@ -53,6 +56,9 @@
         <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
                 <options>
                     <option>NDVI</option>
+                    <option>NDWI</option>
+                    <option>MNDWI</option>
+                    <option>NDBI</option>
                     <option>B01</option>
                     <option>B02</option>
                     <option>B03</option>
@@ -65,7 +71,7 @@
                     <option>B09</option>
                     <option>B11</option>
                     <option>B12</option>
-                    <default>B01</default>
+                    <default>NDVI</default>
                 </options>
              </parameter> 
               </defaultParameters>
@@ -75,7 +81,7 @@
       </defaultJobconf>
     </jobTemplate>
   </jobTemplates>
-    <workflow id="ewf-wfp-02-03-01" title="Regular Sentinel-2 smoothed and gap-filled NDVI timeseries" abstract="This is a short description">
+    <workflow id="ewf-wfp-02-03-01" title="Regular Sentinel-2 smoothed and gap-filled NDVI or NDWI or MNDWI or NDBI or reflectances timeseries" abstract="This is a short description">
     <workflowVersion>1.0</workflowVersion>
     <node id="tiling">
       <job id="tiling"/>
