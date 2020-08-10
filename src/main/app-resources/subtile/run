@@ -37,8 +37,9 @@ def clean_exit(exit_code):
     ciop.log(log_level, msg[exit_code])  
 
 def main():
-        
+    
     ciop = cioppy.Cioppy()
+    ciop.log('INFO', 'Subtiling started')
     
     os.chdir(ciop.tmp_dir)
     
@@ -202,7 +203,13 @@ def main():
             
             #ORIGINAL band 
             if band_to_process == 'NDVI':
+
                 scale10k = lambda x: -3000 if x==-3000 else x*10000
+                vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
+                raster_to_write_ori = vfunc_scale(data_stack[index])
+            
+            elif band_to_process in 'NDWI MNDWI NDBI':
+                scale10k = lambda x: -10000 if x==-10000 else x*10000
                 vfunc_scale = np.vectorize(scale10k,otypes=[np.int16])
                 raster_to_write_ori = vfunc_scale(data_stack[index])
             else:
@@ -299,7 +306,13 @@ def main():
             
             ### NAT & SYN bands also scaled if value!=noData
             if band_to_process == 'NDVI':
+
                 scale10k_conditioned = lambda x: -3000 if np.isnan(x) or np.isinf(x) or x==-3000 else x*10000
+                vfunc_scale_con = np.vectorize(scale10k_conditioned)
+                raster_to_write_nat_syn = vfunc_scale_con(result[index + 2])
+
+            elif band_to_process in 'NDWI MNDWI NDBI':
+                scale10k_conditioned = lambda x: -10000 if np.isnan(x) or np.isinf(x) or x==-10000 else x*10000
                 vfunc_scale_con = np.vectorize(scale10k_conditioned)
                 raster_to_write_nat_syn = vfunc_scale_con(result[index + 2])
             else:
@@ -314,6 +327,8 @@ def main():
         ds.FlushCache()
         if band_to_process == 'NDVI':
             no_data=-3000
+        elif band_to_process in 'NDWI MNDWI NDBI':
+            no_data=-10000
         else:
             no_data=0
         for result,nodata in dict([('s_{}_{}.tif'.format(band_to_process, os.path.basename(local_subtile)), 0),
