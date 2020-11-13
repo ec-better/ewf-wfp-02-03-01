@@ -2,6 +2,7 @@
 
 import os
 import sys
+import subprocess
 
 sys.path.append('/'.join([os.environ['_CIOP_APPLICATION_PATH'], 'util']))
 sys.path.append('../util')
@@ -174,7 +175,11 @@ def main():
         for entry, row in df_references[df_references.output_type == output_type].iterrows():
 
             print (row.enclosure)
+            
+            lp = ciop.copy(row.enclosure, '.')
+            
             local_paths.append(ciop.copy(row.enclosure, '.'))
+            original_paths.append(row.enclosure)
 
         local_vrt = '{}_temp_vrt.xml'.format(output_type)
 
@@ -196,6 +201,32 @@ def main():
             meta = src_ds.GetRasterBand(index+1).GetMetadata()
             ciop.log('INFO', 'Saving {} band on {}'.format(output_type,desc))
             ciop.log('DEBUG', 'metadata {}'.format(meta))
+            
+            if meta == '':
+                
+                ciop.copy(original_paths[0], '{}/tmp/{}.hdfs.tif'.format(os.environ['nameNode'].os.path.basename(original_paths[0])))
+                ciop.copy(local_paths[0],'{}/tmp/'.format(os.environ['nameNode']))
+                          
+                for cmd in ['hadoop -dfs -cp {} {}/tmp/{}.hdfs'.format(original_paths[0],os.environ['nameNode'],os.path.basename(original_paths[0])),
+                            'hadoop -dfs -cp {} {}/tmp/{}'.format(local_paths[0],os.environ['nameNode'],os.path.basename(local_paths[0])),
+                            'hadoop -dfs -ls {}'.format(original_paths[0]), 
+                            'ls -la {}'.format(local_paths[0])]:
+                    p = subprocess.Popen(cmd,
+                                         stdout=subprocess.PIPE,
+                                         stdin=subprocess.PIPE,
+                                         stderr=subprocess.PIPE,
+                                         universal_newlines=True)
+
+                    res, err = p.communicate()
+
+                    if p.returncode:
+                        raise Exception('subprocess returned: ' + str(p.returncode) + '\n' + err )
+                        
+                    my_output = res.rstrip('\n').split('\n')
+                    ciop.log('DEBUG', '{}: \n{}'.format(cmd,my_output))
+
+                
+                
             
             if desc == 's' or desc == 'lag1':
                 #s or lag1
