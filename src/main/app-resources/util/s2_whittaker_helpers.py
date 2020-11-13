@@ -151,13 +151,9 @@ def analyse_merge_row(row, band_to_process):
     series['tile'] = os.path.basename(row.enclosure).split('_')[-1].split('.')[0]
     return pd.Series(series)    
 
-def analyse_subtile(row, parameters, band_to_analyse):
+def analyse_subtile(row, src_ds, parameters, band_to_analyse):
     
     series = dict()
-    
-    src_ds = gdal.Open(get_vsi_url(row.enclosure, 
-                                   parameters['username'], 
-                                   parameters['api_key']))
     
     bands = dict()
 

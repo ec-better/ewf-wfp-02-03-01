@@ -65,12 +65,24 @@ def main():
                                   extract=False)
         
         ciop.log('INFO', 'Processing local tile {}'.format(local_subtile))
+        
+        try:
+            local_subtile_size = os.path.getsize(local_subtile)
+            ciop.log('INFO', 'Reading {} of size {}'.format(local_subtile,local_subtile_size))
+        except OSError as e:
+            ciop.log('ERROR', 'Error reading {} : {}'.format(local_subtile,e))
+            SystemExit(e)
 
         sub_tile = pd.read_pickle(local_subtile, 'gzip')
+        print('subtile pd:\n {}'.format(sub_tile))
         
-        
+        ciop.log('INFO','Getting {}'.format(sub_tile.iloc[0]['enclosure']))
+    
+        src_ds = gdal.Open(get_vsi_url(sub_tile.iloc[0]['enclosure'], 
+                                       data_pipeline_parameters['username'], 
+                                       data_pipeline_parameters['api_key']))
 
-        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters, band_to_process), axis=1),
+        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, src_ds, data_pipeline_parameters, band_to_process), axis=1),
                                   left_index=True,
                                   right_index=True)
 
@@ -339,8 +351,20 @@ def main():
             
             cog('temp_{}'.format(result),result,nodata)
         
-            ciop.log('INFO', 'Publish {}'.format(result))
-            ciop.publish(os.path.join(ciop.tmp_dir, result))
+            #ciop.log('INFO', 'Publish {}'.format(result))
+            #ciop.publish(os.path.join(ciop.tmp_dir, result))
+            
+            try:
+                cog_file = os.path.join(ciop.tmp_dir, result)
+                cog_size = os.path.getsize(cog_file)
+                ciop.log('INFO', 'Publish {} of size {}'.format(cog_file,cog_size))
+                ciop.publish(cog_file)
+            except OSError as e:
+                ciop.log('ERROR', 'Error publishing {} : {}'.format(cog_file,e))
+                SystemExit(e)
+            
+            
+            
 
 try:
     main()

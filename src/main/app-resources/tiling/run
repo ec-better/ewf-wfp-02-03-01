@@ -44,6 +44,7 @@ def main():
     data_pipeline_parameters['username'] = ciop.getparam('_T2Username')
     data_pipeline_parameters['api_key'] = ciop.getparam('_T2ApiKey')
     data_pipeline_parameters['end_point'] = ciop.getparam('input_end_point')
+    tiling_factor = int(ciop.getparam('tiling_factor'))
     
     #### Search Params
     cc = '[0,{}]'.format(ciop.getparam('CC_threshold')) 
@@ -119,7 +120,7 @@ def main():
         print(index, src_ds.GetRasterBand(index).GetDescription())
         bands[src_ds.GetRasterBand(index).GetDescription()] = index 
 
-    tiling_factor = 10
+    #tiling_factor = 10
     
     sub_tiles = get_sub_tiles(data_pipeline_results, data_pipeline_parameters, tiling_factor)
     ciop.log('INFO', 'Number of subtiles: {}'.format(len(sub_tiles)))
@@ -133,8 +134,15 @@ def main():
         #Testing condition to reduce tiles
         #if index >= 1: continue
         
-        ciop.log('INFO', 'Publish {}.pickle'.format(sub_tile))
-        ciop.publish(os.path.join(ciop.tmp_dir, '{}.pickle'.format(sub_tile)))
+        
+        try:
+            pickle_file = os.path.join(ciop.tmp_dir, '{}.pickle'.format(sub_tile))
+            sub_tile_size = os.path.getsize(pickle_file)
+            ciop.log('INFO', 'Publish {} of size {}'.format(pickle_file,sub_tile_size))
+            ciop.publish(pickle_file)
+        except OSError as e:
+            ciop.log('ERROR', 'Error publishing {} : {}'.format(pickle_file,e))
+            SystemExit(e)
 
 try:
     main()
