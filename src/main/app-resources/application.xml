@@ -4,13 +4,14 @@
     <jobTemplate id="tiling">
       <streamingExecutable>/application/tiling/run</streamingExecutable>
         <defaultParameters>
-            <parameter id='input_end_point' title='Input_end_point' abstract='Data pipeline to select input products' scope="runtime"></parameter>
+            <parameter id='input_end_point' title='Input_end_point' abstract='Data pipeline to select input products' scope="runtime">https://catalog.terradue.com/ard-s2-boa-reflectances/search</parameter>
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
             <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
-            <parameter id='start_date' title='start_date' abstract='start_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime"></parameter>
-            <parameter id='end_date' title='end_date' abstract='end_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime"></parameter>
-            <parameter id='tile_id' title='tile_id' abstract='tile_id' scope="runtime">S2*T33UXP*</parameter>
-            <parameter id='CC_threshold' title='CC_threshold' abstract='CloudCoverage Threshold' scope="runtime">100</parameter>
+            <parameter id='start_date' title='start_date' abstract='start_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime">2020-08-01T00:00Z</parameter>
+            <parameter id='end_date' title='end_date' abstract='end_date in YYYY-mm-ddTHH:MM:SSZ format' scope="runtime">2020-08-21T00:00Z</parameter>
+            <parameter id='tile_id' title='tile_id' abstract='tile_id' scope="runtime">S2*T18QVH*</parameter>
+            <parameter id='CC_threshold' title='CloudCoverage threshold' abstract='CloudCoverage Threshold' scope="runtime">100</parameter>
+            <parameter id='tiling_factor' title='Tiling level factor' abstract='Tiling level factor' scope="runtime">10</parameter>
         </defaultParameters>
        <defaultJobconf>
         <property id="ciop.job.max.tasks">1</property>
@@ -22,7 +23,7 @@
         <defaultParameters>
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
             <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
-            <parameter id='delta_time_output' title='Delta Day' abstract='Delta Day Difference for interpo' scope="runtime"></parameter>
+            <parameter id='delta_time_output' title='Delta Day' abstract='Delta Day Difference for interpo' scope="runtime">5</parameter>
             <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
                 <options>
                     <option>NDVI</option>
