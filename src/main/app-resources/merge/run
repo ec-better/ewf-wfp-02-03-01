@@ -176,8 +176,6 @@ def main():
 
             print (row.enclosure)
             
-            lp = ciop.copy(row.enclosure, '.')
-            
             local_paths.append(ciop.copy(row.enclosure, '.'))
             original_paths.append(row.enclosure)
 
