@@ -132,7 +132,7 @@ def main():
         sub_tiles[sub_tiles['sub_tile'] == sub_tile].sort_values(by=['day']).reset_index().to_pickle(os.path.join(ciop.tmp_dir,
                                                                                                                   '{}.pickle'.format(sub_tile)), 'gzip')
         #Testing condition to reduce tiles
-        if index >= 1: continue
+        #if index >= 1: continue
         
         
         try:
