@@ -169,7 +169,8 @@ def main():
     for output_type in df_references.output_type.unique():
         
         print(output_type)
-        local_paths = [] 
+        local_paths = []
+        original_paths = []
         band_to_process = band_to_process_orig
 
         for entry, row in df_references[df_references.output_type == output_type].iterrows():
