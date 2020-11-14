@@ -45,6 +45,7 @@ def main():
     
     band_to_process = ciop.getparam('band')
     delta_day = int(ciop.getparam('delta_time_output'))
+    p_value = float(ciop.getparam('p_value'))
 
     data_pipeline_parameters = dict()    
     
@@ -117,7 +118,7 @@ def main():
         
         print('mask_stack.shape = {}'.format(mask_stack.shape))
         
-        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process)
+        result = np.apply_along_axis(whittaker, 0, data_stack, date_mask, band_to_process, p_value)
         
         print('result.shape = {}'.format(result.shape))
         
