@@ -24,6 +24,7 @@
             <parameter id='_T2Username' title='Username' abstract='Username' scope="runtime"></parameter>
             <parameter id='_T2ApiKey' title='API key' abstract='API key' scope="runtime"></parameter>
             <parameter id='delta_time_output' title='Delta Day' abstract='Delta Day Difference for interpo' scope="runtime">5</parameter>
+            <parameter id='p_value' title='p value' abstract='p value for whittiker filtering' scope="runtime">0.90</parameter>
             <parameter id='band' title='Value to smooth and gap-fill' abstract='Value to smooth and gap-fill' scope="runtime">
                 <options>
                     <option>NDVI</option>

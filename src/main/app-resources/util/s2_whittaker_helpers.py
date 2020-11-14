@@ -290,7 +290,7 @@ def generate_dates(startdate_string=None, enddate_string=None, delta=5):
 
 
 
-def whittaker(ts, date_mask, band_to_analyse):
+def whittaker(ts, date_mask, band_to_analyse, p_value=0.90):
     """
     Apply the whittaker smoothing to a 1d array of floating values.
     Args:
@@ -319,7 +319,7 @@ def whittaker(ts, date_mask, band_to_analyse):
         
         try: 
             # apply whittaker filter with V-curve
-            zv, loptv = ws2doptvp(ts, w, lrange, p=0.90)
+            zv, loptv = ws2doptvp(ts, w, lrange, p=p_value)
             #parameters needed for the interpolation step
            
             dvec = np.zeros(len(date_mask))
