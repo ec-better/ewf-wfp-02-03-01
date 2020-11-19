@@ -79,11 +79,8 @@ def main():
         
         ciop.log('INFO','Getting {}'.format(sub_tile.iloc[0]['enclosure']))
     
-        src_ds = gdal.Open(get_vsi_url(sub_tile.iloc[0]['enclosure'], 
-                                       data_pipeline_parameters['username'], 
-                                       data_pipeline_parameters['api_key']))
 
-        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, src_ds, data_pipeline_parameters, band_to_process), axis=1),
+        sub_tile = sub_tile.merge(sub_tile.apply(lambda row: analyse_subtile(row, data_pipeline_parameters, band_to_process), axis=1),
                                   left_index=True,
                                   right_index=True)
 
