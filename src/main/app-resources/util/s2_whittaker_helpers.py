@@ -158,8 +158,8 @@ def analyse_subtile(row, parameters, band_to_analyse):
     bands = dict()
     
     src_ds = gdal.Open(get_vsi_url(row.enclosure, 
-                                   data_pipeline_parameters['username'], 
-                                   data_pipeline_parameters['api_key']))
+                                   parameters['username'], 
+                                   parameters['api_key']))
 
     for band in range(src_ds.RasterCount):
 
